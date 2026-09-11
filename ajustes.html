@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f172a">
+<title>CajaFácil Cuba — Ajustes</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <i class="ti ti-settings" style="font-size:22px;color:var(--primary)"></i>
+  <h1>Ajustes</h1>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="btn-theme"></button>
+</header>
+
+<main class="container">
+  <div class="card">
+    <label>Nombre del negocio</label>
+    <input class="input" id="a-negocio">
+  </div>
+
+  <div class="card">
+    <label>Tasa USD → CUP</label>
+    <input class="input" id="a-tasa" type="number" min="0" step="0.01">
+    <button class="btn btn-primary btn-block" style="margin-top:12px" id="btn-guardar">
+      <i class="ti ti-check"></i> Guardar ajustes
+    </button>
+  </div>
+
+  <div class="card">
+    <strong style="display:block;margin-bottom:10px">Copia de seguridad</strong>
+    <button class="btn btn-block" id="btn-exportar"><i class="ti ti-download"></i> Exportar datos (JSON)</button>
+    <label style="margin-top:12px">Importar datos</label>
+    <input class="input" type="file" id="file-import" accept="application/json">
+    <button class="btn btn-danger btn-block" style="margin-top:12px" id="btn-reset">
+      <i class="ti ti-alert-triangle"></i> Borrar todos los datos
+    </button>
+  </div>
+
+  <div class="card" style="text-align:center;color:var(--muted);font-size:12px">
+    <div style="font-weight:600;color:var(--text)">CajaFácil Cuba</div>
+    <div>Versión 1.0.0 · 100% offline</div>
+  </div>
+</main>
+
+<nav class="nav-bottom">
+  <a href="index.html"><i class="ti ti-shopping-cart"></i>Vender</a>
+  <a href="inventario.html"><i class="ti ti-box"></i>Inventario</a>
+  <a href="contador.html"><i class="ti ti-cash-banknote"></i>Contador</a>
+  <a href="caja.html"><i class="ti ti-wallet"></i>Caja</a>
+  <a href="reportes.html"><i class="ti ti-chart-bar"></i>Reportes</a>
+  <a href="ajustes.html"><i class="ti ti-settings"></i>Ajustes</a>
+</nav>
+
+<script src="js/app.js"></script>
+<script src="js/ajustes.js"></script>
+</body>
+</html>
