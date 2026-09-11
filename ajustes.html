@@ -20,6 +20,7 @@
 </header>
 
 <main class="container">
+
   <div class="card">
     <label>Nombre del negocio</label>
     <input class="input" id="a-negocio">
@@ -43,11 +44,40 @@
     </button>
   </div>
 
+  <div class="card">
+    <strong style="display:block;margin-bottom:10px">Ayuda e información</strong>
+
+    <button class="btn btn-block" style="margin-bottom:8px" onclick="abrirSeccion('guia')">
+      <i class="ti ti-book"></i> Guía de uso
+    </button>
+    <button class="btn btn-block" style="margin-bottom:8px" onclick="abrirSeccion('faq')">
+      <i class="ti ti-help-circle"></i> Preguntas frecuentes
+    </button>
+    <button class="btn btn-block" style="margin-bottom:8px" onclick="abrirSeccion('privacidad')">
+      <i class="ti ti-shield-lock"></i> Política de privacidad
+    </button>
+    <button class="btn btn-block" onclick="abrirSeccion('terminos')">
+      <i class="ti ti-file-text"></i> Términos y condiciones
+    </button>
+  </div>
+
   <div class="card" style="text-align:center;color:var(--muted);font-size:12px">
     <div style="font-weight:600;color:var(--text)">CajaFácil Cuba</div>
     <div>Versión 1.0.0 · 100% offline</div>
+    <div style="margin-top:8px">Desarrollado por <strong style="color:var(--text)">Disney Gutiérrez Guevara</strong></div>
   </div>
+
 </main>
+
+<!-- Panel de contenido dinámico -->
+<div id="panel" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:60;overflow-y:auto">
+  <header class="topbar">
+    <button class="icon-btn" onclick="cerrarPanel()"><i class="ti ti-arrow-left"></i></button>
+    <h1 id="panel-titulo">Sección</h1>
+    <div class="spacer"></div>
+  </header>
+  <main class="container" id="panel-contenido"></main>
+</div>
 
 <nav class="nav-bottom">
   <a href="index.html"><i class="ti ti-shopping-cart"></i>Vender</a>
