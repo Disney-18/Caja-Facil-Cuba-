@@ -1,29 +1,41 @@
-// ============================================================
-// CajaFácil Cuba - Ajustes, guía, FAQ, privacidad y términos
-// Desarrollado por Disney Gutiérrez Guevara
-// ============================================================
-
 function cargarAjustes() {
-  document.getElementById('a-negocio').value = State.ajustes.negocio || '';
+  document.getElementById('a-negocio').value = State.negocioActivo?.nombre || State.ajustes.negocio || '';
   document.getElementById('a-tasa').value = State.ajustes.tasaUSD || 0;
 }
 
-function guardarAjustes() {
-  State.ajustes.negocio = document.getElementById('a-negocio').value.trim();
+async function guardarAjustesHandler() {
+  const nombre = document.getElementById('a-negocio').value.trim();
   State.ajustes.tasaUSD = parseFloat(document.getElementById('a-tasa').value) || 0;
-  saveState();
+  if (nombre && State.negocioActivo) {
+    State.negocioActivo.nombre = nombre;
+    await guardarNegocio(State.negocioActivo);
+    pintarNegocioActivo();
+  }
+  State.ajustes.negocio = nombre;
+  await guardarAjustes();
   toast('Ajustes guardados');
 }
 
-function exportarDatos() {
+async function exportarDatos() {
+  const todosNegocios = await IDB.getAll(IDB.STORES.NEGOCIOS);
+  const todosProductos = await IDB.getAll(IDB.STORES.PRODUCTOS);
+  const todasVentas = await IDB.getAll(IDB.STORES.VENTAS);
+  const todosTurnos = await IDB.getAll(IDB.STORES.TURNOS);
+  const todosConteos = await IDB.getAll(IDB.STORES.CONTEOS);
+  const todosMovimientos = await IDB.getAll(IDB.STORES.MOVIMIENTOS);
+
   const data = {
-    productos: State.productos,
-    ventas: State.ventas,
-    turno: State.turno,
-    conteos: State.conteos,
-    ajustes: State.ajustes,
-    turnosCerrados: DB.get('turnosCerrados', [])
+    version: 2,
+    fecha: new Date().toISOString(),
+    negocios: todosNegocios,
+    productos: todosProductos,
+    ventas: todasVentas,
+    turnos: todosTurnos,
+    conteos: todosConteos,
+    movimientos: todosMovimientos,
+    ajustes: State.ajustes
   };
+
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -33,17 +45,23 @@ function exportarDatos() {
 
 function importarDatos(file) {
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const d = JSON.parse(e.target.result);
-      State.productos = d.productos || [];
-      State.ventas = d.ventas || [];
-      State.turno = d.turno || null;
-      State.conteos = d.conteos || [];
-      State.ajustes = d.ajustes || State.ajustes;
-      saveState();
-      toast('Datos importados');
-      cargarAjustes();
+
+      if (d.negocios) for (const x of d.negocios) await IDB.put(IDB.STORES.NEGOCIOS, x);
+      if (d.productos) for (const x of d.productos) await IDB.put(IDB.STORES.PRODUCTOS, x);
+      if (d.ventas) for (const x of d.ventas) await IDB.put(IDB.STORES.VENTAS, x);
+      if (d.turnos) for (const x of d.turnos) await IDB.put(IDB.STORES.TURNOS, x);
+      if (d.conteos) for (const x of d.conteos) await IDB.put(IDB.STORES.CONTEOS, x);
+      if (d.movimientos) for (const x of d.movimientos) await IDB.put(IDB.STORES.MOVIMIENTOS, x);
+      if (d.ajustes) {
+        State.ajustes = d.ajustes;
+        await guardarAjustes();
+      }
+
+      toast('Datos importados. Recargando...');
+      setTimeout(() => location.reload(), 900);
     } catch {
       toast('Archivo inválido');
     }
@@ -51,15 +69,18 @@ function importarDatos(file) {
   reader.readAsText(file);
 }
 
-function resetTodo() {
+async function resetTodo() {
   if (!confirm('¿Borrar TODOS los datos? Esta acción no se puede deshacer.')) return;
-  ['productos','ventas','turno','conteos','ajustes','turnosCerrados'].forEach(k => localStorage.removeItem('cfc_' + k));
-  location.reload();
+  await IDB.clear(IDB.STORES.NEGOCIOS);
+  await IDB.clear(IDB.STORES.PRODUCTOS);
+  await IDB.clear(IDB.STORES.VENTAS);
+  await IDB.clear(IDB.STORES.TURNOS);
+  await IDB.clear(IDB.STORES.CONTEOS);
+  await IDB.clear(IDB.STORES.MOVIMIENTOS);
+  await IDB.clear(IDB.STORES.META);
+  toast('Datos borrados. Recargando...');
+  setTimeout(() => location.reload(), 900);
 }
-
-// ============================================================
-// Secciones informativas
-// ============================================================
 
 function abrirSeccion(id) {
   const panel = document.getElementById('panel');
@@ -85,9 +106,19 @@ function cerrarPanel() {
   document.getElementById('panel').style.display = 'none';
 }
 
-// ============================================================
-// Contenido: Guía de uso
-// ============================================================
+window.addEventListener('estado-listo', () => {
+  cargarAjustes();
+  document.getElementById('btn-guardar').addEventListener('click', guardarAjustesHandler);
+  document.getElementById('btn-exportar').addEventListener('click', exportarDatos);
+  document.getElementById('file-import').addEventListener('change', e => {
+    if (e.target.files[0]) importarDatos(e.target.files[0]);
+  });
+  document.getElementById('btn-reset').addEventListener('click', resetTodo);
+});
+
+window.addEventListener('negocio-cambiado', () => {
+  cargarAjustes();
+});
 
 const GUIA = `
 <div class="card">
@@ -203,10 +234,6 @@ const GUIA = `
 </div>
 `;
 
-// ============================================================
-// Contenido: Preguntas frecuentes
-// ============================================================
-
 const FAQ = `
 <div class="card">
   <strong style="display:block;margin-bottom:6px">¿La aplicación es realmente gratis?</strong>
@@ -227,8 +254,9 @@ const FAQ = `
 <div class="card">
   <strong style="display:block;margin-bottom:6px">¿Dónde se guardan mis datos?</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    En tu propio dispositivo, dentro del navegador. No se envían a ningún
-    servidor ni a terceros.
+    En tu propio dispositivo. Desde esta versión la aplicación usa una base
+    de datos interna del navegador llamada IndexedDB, más robusta y con mayor
+    capacidad que el almacenamiento anterior.
   </p>
 </div>
 
@@ -308,10 +336,6 @@ const FAQ = `
 </div>
 `;
 
-// ============================================================
-// Contenido: Política de privacidad
-// ============================================================
-
 const PRIVACIDAD = `
 <div class="card">
   <strong style="display:block;margin-bottom:8px">Política de privacidad</strong>
@@ -337,8 +361,8 @@ const PRIVACIDAD = `
   <strong style="display:block;margin-bottom:6px">2. Dónde se guarda la información</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     Toda la información que introduces (productos, ventas, conteos, turnos y
-    ajustes) se guarda exclusivamente en el almacenamiento local del navegador
-    de tu dispositivo. Nunca sale de él.
+    ajustes) se guarda exclusivamente en la base de datos interna del
+    navegador de tu dispositivo. Nunca sale de él.
   </p>
 </div>
 
@@ -422,10 +446,6 @@ const PRIVACIDAD = `
   </p>
 </div>
 `;
-
-// ============================================================
-// Contenido: Términos y condiciones
-// ============================================================
 
 const TERMINOS = `
 <div class="card">
@@ -554,16 +574,5 @@ const TERMINOS = `
 </div>
 `;
 
-// ============================================================
-// Inicialización
-// ============================================================
-
-document.addEventListener('DOMContentLoaded', () => {
-  cargarAjustes();
-  document.getElementById('btn-guardar').addEventListener('click', guardarAjustes);
-  document.getElementById('btn-exportar').addEventListener('click', exportarDatos);
-  document.getElementById('file-import').addEventListener('change', e => {
-    if (e.target.files[0]) importarDatos(e.target.files[0]);
-  });
-  document.getElementById('btn-reset').addEventListener('click', resetTodo);
-});
+window.abrirSeccion = abrirSeccion;
+window.cerrarPanel = cerrarPanel;
