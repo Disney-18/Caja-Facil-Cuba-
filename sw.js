@@ -1,4 +1,4 @@
-const CACHE = 'caja-facil-cuba-v2';
+const CACHE = 'caja-facil-cuba-v3';
 
 const LOCAL_ASSETS = [
   './',
@@ -8,6 +8,7 @@ const LOCAL_ASSETS = [
   './caja.html',
   './reportes.html',
   './ajustes.html',
+  './negocios.html',
   './css/styles.css',
   './js/db.js',
   './js/migracion.js',
@@ -18,6 +19,7 @@ const LOCAL_ASSETS = [
   './js/caja.js',
   './js/reportes.js',
   './js/ajustes.js',
+  './js/negocios.js',
   './manifest.json'
 ];
 
@@ -56,10 +58,31 @@ self.addEventListener('activate', e => {
   );
 });
 
+self.addEventListener('message', e => {
+  if (e.data && e.data.tipo === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
+  // Navegación (HTML): red primero, caché de respaldo
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req)
+        .then(res => {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match(req).then(c => c || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Recursos: caché primero, red de respaldo
   e.respondWith(
     caches.match(req).then(cached => {
       if (cached) return cached;
