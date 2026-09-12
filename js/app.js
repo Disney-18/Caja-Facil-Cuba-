@@ -207,9 +207,37 @@ function pintarNegocioActivo() {
   `;
 }
 
+// ------------------------------------------------------------
+// Service Worker con auto-actualización
+// ------------------------------------------------------------
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+
+  let recargando = false;
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recargando) return;
+    recargando = true;
+    toast('Actualizando a la nueva versión...');
+    setTimeout(() => location.reload(), 900);
+  });
+
+  navigator.serviceWorker.ready.then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const nuevo = reg.installing;
+      if (!nuevo) return;
+      nuevo.addEventListener('statechange', () => {
+        if (nuevo.state === 'installed' && navigator.serviceWorker.controller) {
+          nuevo.postMessage({ tipo: 'SKIP_WAITING' });
+        }
+      });
+    });
+
+    // Buscar actualizaciones cada 30 minutos mientras la app esté abierta
+    setInterval(() => reg.update().catch(() => {}), 30 * 60 * 1000);
   });
 }
 
