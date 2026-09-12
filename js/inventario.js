@@ -54,7 +54,7 @@ function editar(id) {
   mostrarForm(true);
 }
 
-function guardar() {
+async function guardar() {
   const nombre = document.getElementById('p-nombre').value.trim();
   const codigo = document.getElementById('p-codigo').value.trim();
   const precio = parseFloat(document.getElementById('p-precio').value) || 0;
@@ -64,26 +64,29 @@ function guardar() {
   if (editId) {
     const p = State.productos.find(x => x.id === editId);
     Object.assign(p, { nombre, codigo, precio, stock });
+    await guardarProducto(p);
   } else {
-    State.productos.push({ id: uid(), nombre, codigo, precio, stock });
+    await guardarProducto({ id: uid(), nombre, codigo, precio, stock });
   }
-  saveState();
   mostrarForm(false);
   renderInventario(document.getElementById('filtro').value);
   toast('Guardado');
 }
 
-function eliminar(id) {
+async function eliminar(id) {
   if (!confirm('¿Eliminar producto?')) return;
-  State.productos = State.productos.filter(x => x.id !== id);
-  saveState();
+  await eliminarProducto(id);
   renderInventario(document.getElementById('filtro').value);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('estado-listo', () => {
   renderInventario();
   document.getElementById('btn-nuevo').addEventListener('click', nuevo);
   document.getElementById('btn-cancelar').addEventListener('click', () => mostrarForm(false));
   document.getElementById('btn-guardar').addEventListener('click', guardar);
   document.getElementById('filtro').addEventListener('input', e => renderInventario(e.target.value));
+});
+
+window.addEventListener('negocio-cambiado', () => {
+  renderInventario(document.getElementById('filtro')?.value || '');
 });
