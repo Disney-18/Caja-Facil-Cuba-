@@ -65,18 +65,17 @@ function calcular() {
   }
 }
 
-function guardarConteo() {
+async function guardarConteo() {
   const moneda = document.getElementById('moneda').value;
   const total = Object.entries(cantidades).reduce((s, [d, c]) => s + d * c, 0);
   if (total === 0) { toast('Nada que guardar'); return; }
-  State.conteos.unshift({
+  await guardarConteoDB({
     id: uid(),
     fecha: new Date().toISOString(),
     moneda,
     cantidades: { ...cantidades },
     total
   });
-  saveState();
   renderHistorial();
   toast('Conteo guardado');
 }
@@ -111,17 +110,20 @@ function renderHistorial() {
   }).join('');
 }
 
-function borrarHistorial(id) {
-  State.conteos = State.conteos.filter(c => c.id !== id);
-  saveState();
+async function borrarHistorial(id) {
+  await eliminarConteo(id);
   renderHistorial();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('estado-listo', () => {
   renderTabla();
   renderHistorial();
   document.getElementById('moneda').addEventListener('change', renderTabla);
   document.getElementById('esperado').addEventListener('input', calcular);
   document.getElementById('btn-guardar').addEventListener('click', guardarConteo);
   document.getElementById('btn-borrar').addEventListener('click', borrar);
+});
+
+window.addEventListener('negocio-cambiado', () => {
+  renderHistorial();
 });
