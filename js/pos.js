@@ -69,31 +69,32 @@ function changeCant(i, d) {
   if (ticket[i].cant <= 0) ticket.splice(i, 1);
   renderTicket();
 }
+
 function delItem(i) { ticket.splice(i, 1); renderTicket(); }
 function vaciarTicket() { ticket = []; renderTicket(); }
 
-function cobrar() {
+async function cobrar() {
   if (!ticket.length) { toast('Ticket vacío'); return; }
-  ticket.forEach(t => {
-    const p = State.productos.find(x => x.id === t.id);
-    if (p) p.stock -= t.cant;
-  });
   const total = ticket.reduce((s, t) => s + t.precio * t.cant, 0);
-  State.ventas.push({
+  await guardarVenta({
     id: uid(),
     fecha: new Date().toISOString(),
     items: [...ticket],
     total,
-    turno: State.turno?.id || null
+    turno_id: State.turno?.id || null
   });
-  saveState();
   toast('Venta registrada');
   vaciarTicket();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('estado-listo', () => {
   renderTicket();
   document.getElementById('buscar').addEventListener('input', e => renderResultados(e.target.value));
   document.getElementById('btn-vaciar').addEventListener('click', vaciarTicket);
   document.getElementById('btn-cobrar').addEventListener('click', cobrar);
+});
+
+window.addEventListener('negocio-cambiado', () => {
+  ticket = [];
+  renderTicket();
 });
