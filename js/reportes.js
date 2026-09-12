@@ -48,7 +48,11 @@ function exportarCSV() {
   a.click();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('estado-listo', () => {
   renderReportes();
   document.getElementById('btn-export').addEventListener('click', exportarCSV);
+});
+
+window.addEventListener('negocio-cambiado', () => {
+  renderReportes();
 });
