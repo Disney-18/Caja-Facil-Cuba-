@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f172a">
+<title>CajaFácil Cuba — Negocios</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a href="ajustes.html" class="icon-btn" style="text-decoration:none"><i class="ti ti-arrow-left"></i></a>
+  <i class="ti ti-building-store" style="font-size:22px;color:var(--primary)"></i>
+  <h1>Negocios</h1>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="btn-theme"></button>
+</header>
+
+<main class="container">
+
+  <button class="btn btn-primary btn-block" id="btn-nuevo">
+    <i class="ti ti-plus"></i> Nuevo negocio
+  </button>
+
+  <div class="card" id="form-negocio" style="display:none;margin-top:12px">
+    <strong id="form-titulo" style="display:block;margin-bottom:12px">Nuevo negocio</strong>
+
+    <label>Nombre</label>
+    <input class="input" id="n-nombre" placeholder="Ej: Bodega La Esquina">
+
+    <label style="margin-top:12px">Tipo (opcional)</label>
+    <input class="input" id="n-tipo" placeholder="Ej: bodega, cafetería, kiosco">
+
+    <label style="margin-top:12px">Ícono</label>
+    <div id="iconos" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px"></div>
+
+    <label style="margin-top:12px">Color</label>
+    <div id="colores" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px"></div>
+
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-success" style="flex:1" id="btn-guardar"><i class="ti ti-check"></i> Guardar</button>
+      <button class="btn" id="btn-cancelar">Cancelar</button>
+    </div>
+  </div>
+
+  <div style="margin-top:14px">
+    <div id="lista-negocios"></div>
+  </div>
+
+</main>
+
+<nav class="nav-bottom">
+  <a href="index.html"><i class="ti ti-shopping-cart"></i>Vender</a>
+  <a href="inventario.html"><i class="ti ti-box"></i>Inventario</a>
+  <a href="contador.html"><i class="ti ti-cash-banknote"></i>Contador</a>
+  <a href="caja.html"><i class="ti ti-wallet"></i>Caja</a>
+  <a href="reportes.html"><i class="ti ti-chart-bar"></i>Reportes</a>
+  <a href="ajustes.html"><i class="ti ti-settings"></i>Ajustes</a>
+</nav>
+
+<script src="js/db.js"></script>
+<script src="js/migracion.js"></script>
+<script src="js/app.js"></script>
+<script src="js/negocios.js"></script>
+</body>
+</html>
