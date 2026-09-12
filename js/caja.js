@@ -1,6 +1,6 @@
 function ventasTurno() {
   if (!State.turno) return [];
-  return State.ventas.filter(v => v.turno === State.turno.id);
+  return State.ventas.filter(v => v.turno_id === State.turno.id);
 }
 
 function renderCaja() {
@@ -46,58 +46,58 @@ function renderCaja() {
   panelActivo.style.display = 'block';
 }
 
-function abrirTurno() {
+async function abrirTurno() {
   const inicial = parseFloat(document.getElementById('monto-inicial').value) || 0;
-  State.turno = {
+  const t = {
     id: uid(),
     inicio: new Date().toISOString(),
+    fin: null,
     inicial,
-    retiros: []
+    retiros: [],
+    estado: 'abierto'
   };
-  saveState();
+  await guardarTurno(t);
   toast('Turno abierto');
   renderCaja();
 }
 
-function retiro() {
+async function retiro() {
   const monto = parseFloat(document.getElementById('monto-retiro').value) || 0;
   const motivo = document.getElementById('motivo-retiro').value.trim();
   if (monto <= 0) { toast('Monto inválido'); return; }
   State.turno.retiros.push({ id: uid(), monto, motivo, fecha: new Date().toISOString() });
-  saveState();
+  await guardarTurno(State.turno);
   document.getElementById('monto-retiro').value = '';
   document.getElementById('motivo-retiro').value = '';
   toast('Retiro registrado');
   renderCaja();
 }
 
-function cerrarTurno() {
+async function cerrarTurno() {
   if (!confirm('¿Cerrar el turno actual?')) return;
-  const t = State.turno;
+  const t = { ...State.turno };
   const ventas = ventasTurno();
   const totalVentas = ventas.reduce((s, v) => s + v.total, 0);
   const totalRetiros = t.retiros.reduce((s, r) => s + r.monto, 0);
   const efectivo = t.inicial + totalVentas - totalRetiros;
-  const cierre = {
-    ...t,
-    fin: new Date().toISOString(),
-    totalVentas,
-    totalRetiros,
-    efectivoFinal: efectivo,
-    cantidadVentas: ventas.length
-  };
-  const historial = DB.get('turnosCerrados', []);
-  historial.unshift(cierre);
-  DB.set('turnosCerrados', historial);
-  State.turno = null;
-  saveState();
+  t.fin = new Date().toISOString();
+  t.totalVentas = totalVentas;
+  t.totalRetiros = totalRetiros;
+  t.efectivoFinal = efectivo;
+  t.cantidadVentas = ventas.length;
+  t.estado = 'cerrado';
+  await guardarTurno(t);
   toast('Turno cerrado');
   renderCaja();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('estado-listo', () => {
   renderCaja();
   document.getElementById('btn-abrir').addEventListener('click', abrirTurno);
   document.getElementById('btn-retiro').addEventListener('click', retiro);
   document.getElementById('btn-cerrar').addEventListener('click', cerrarTurno);
+});
+
+window.addEventListener('negocio-cambiado', () => {
+  renderCaja();
 });
