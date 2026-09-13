@@ -21,34 +21,116 @@
 </header>
 
 <main class="container">
-  <button class="btn btn-primary btn-block" id="btn-nuevo">
-    <i class="ti ti-plus"></i> Nuevo producto
-  </button>
 
-  <div class="card" id="form-card" style="display:none;margin-top:12px">
-    <div class="grid grid-2">
-      <div><label>Nombre</label><input class="input" id="p-nombre"></div>
-      <div><label>Código</label><input class="input" id="p-codigo"></div>
-      <div><label>Precio (CUP)</label><input class="input" id="p-precio" type="number" min="0" step="0.01"></div>
-      <div><label>Stock</label><input class="input" id="p-stock" type="number" min="0"></div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <button class="btn btn-primary" style="flex:1" id="btn-nuevo-producto">
+      <i class="ti ti-plus"></i> Producto
+    </button>
+    <button class="btn" style="flex:1" id="btn-nueva-categoria">
+      <i class="ti ti-tag"></i> Categoría
+    </button>
+  </div>
+
+  <div class="card" id="form-producto" style="display:none">
+    <strong id="form-producto-titulo" style="display:block;margin-bottom:12px">Nuevo producto</strong>
+
+    <label>Nombre</label>
+    <input class="input" id="p-nombre" maxlength="80">
+
+    <div class="grid grid-2" style="margin-top:12px">
+      <div>
+        <label>Código (opcional)</label>
+        <input class="input" id="p-codigo" maxlength="40">
+      </div>
+      <div>
+        <label>Categoría</label>
+        <select class="input" id="p-categoria"></select>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <button class="btn btn-success" id="btn-guardar"><i class="ti ti-check"></i> Guardar</button>
-      <button class="btn" id="btn-cancelar">Cancelar</button>
+
+    <div class="grid grid-2" style="margin-top:12px">
+      <div>
+        <label>Unidad</label>
+        <select class="input" id="p-unidad"></select>
+      </div>
+      <div>
+        <label>Precio sugerido (CUP)</label>
+        <input class="input" id="p-precio" type="number" min="0" step="0.01">
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:12px">
+      <div>
+        <label>Costo (CUP, opcional)</label>
+        <input class="input" id="p-costo" type="number" min="0" step="0.01">
+      </div>
+      <div>
+        <label>Stock actual</label>
+        <input class="input" id="p-stock" type="number" min="0" step="0.01">
+      </div>
+    </div>
+
+    <label style="margin-top:12px">Stock mínimo (para alertas)</label>
+    <input class="input" id="p-stock-minimo" type="number" min="0" step="0.01" value="0">
+
+    <div id="p-margen" style="margin-top:12px;font-size:13px;color:var(--muted)"></div>
+
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-success" style="flex:1" id="btn-guardar-producto">
+        <i class="ti ti-check"></i> Guardar
+      </button>
+      <button class="btn" id="btn-cancelar-producto">Cancelar</button>
     </div>
   </div>
 
-  <div class="card" style="margin-top:12px">
-    <input class="input" id="filtro" placeholder="Filtrar productos...">
+  <div class="card" id="form-categoria" style="display:none">
+    <strong style="display:block;margin-bottom:12px">Categorías</strong>
+
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input class="input" id="c-nombre" placeholder="Nombre de la categoría" maxlength="40">
+      <button class="btn btn-primary" id="btn-guardar-categoria"><i class="ti ti-plus"></i></button>
+    </div>
+
+    <div id="lista-categorias"></div>
+
+    <div style="margin-top:12px">
+      <button class="btn btn-block" id="btn-cerrar-categoria">Cerrar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <input class="input" id="filtro" placeholder="Buscar producto...">
+    <div style="margin-top:10px">
+      <select class="input" id="filtro-categoria">
+        <option value="">Todas las categorías</option>
+      </select>
+    </div>
   </div>
 
   <div class="card">
     <table>
-      <thead><tr><th>Producto</th><th>Precio</th><th>Stock</th><th></th></tr></thead>
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Precio</th>
+          <th>Stock</th>
+          <th></th>
+        </tr>
+      </thead>
       <tbody id="lista"></tbody>
     </table>
   </div>
+
 </main>
+
+<div id="panel" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:60;overflow-y:auto">
+  <header class="topbar">
+    <button class="icon-btn" onclick="cerrarPanel()"><i class="ti ti-arrow-left"></i></button>
+    <h1 id="panel-titulo">Producto</h1>
+    <div class="spacer"></div>
+  </header>
+  <main class="container" id="panel-contenido"></main>
+</div>
 
 <nav class="nav-bottom">
   <a href="index.html"><i class="ti ti-shopping-cart"></i>Vender</a>
