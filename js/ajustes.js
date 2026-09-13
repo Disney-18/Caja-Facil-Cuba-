@@ -1,6 +1,6 @@
 // ============================================================
 // CajaFácil Cuba - Ajustes, guía, historial, FAQ, privacidad y términos
-// Bloque 3.1: historial de cambios añadido
+// Bloque 4.1: historial actualizado a v1.3.0
 // Desarrollado por Disney Gutiérrez Guevara
 // ============================================================
 
@@ -19,17 +19,21 @@ async function guardarAjustesHandler() {
 
 async function exportarDatos() {
   const todosNegocios = await IDB.getAll(IDB.STORES.NEGOCIOS);
+  const todasCategorias = await IDB.getAll(IDB.STORES.CATEGORIAS);
   const todosProductos = await IDB.getAll(IDB.STORES.PRODUCTOS);
+  const todosMovInv = await IDB.getAll(IDB.STORES.MOVIMIENTOS_INV);
   const todasVentas = await IDB.getAll(IDB.STORES.VENTAS);
   const todosTurnos = await IDB.getAll(IDB.STORES.TURNOS);
   const todosConteos = await IDB.getAll(IDB.STORES.CONTEOS);
   const todosMovimientos = await IDB.getAll(IDB.STORES.MOVIMIENTOS);
 
   const data = {
-    version: 3,
+    version: 4,
     fecha: new Date().toISOString(),
     negocios: todosNegocios,
+    categorias: todasCategorias,
     productos: todosProductos,
+    movimientos_inv: todosMovInv,
     ventas: todasVentas,
     turnos: todosTurnos,
     conteos: todosConteos,
@@ -51,7 +55,9 @@ function importarDatos(file) {
       const d = JSON.parse(e.target.result);
 
       if (d.negocios) for (const x of d.negocios) await IDB.put(IDB.STORES.NEGOCIOS, x);
+      if (d.categorias) for (const x of d.categorias) await IDB.put(IDB.STORES.CATEGORIAS, x);
       if (d.productos) for (const x of d.productos) await IDB.put(IDB.STORES.PRODUCTOS, x);
+      if (d.movimientos_inv) for (const x of d.movimientos_inv) await IDB.put(IDB.STORES.MOVIMIENTOS_INV, x);
       if (d.ventas) for (const x of d.ventas) await IDB.put(IDB.STORES.VENTAS, x);
       if (d.turnos) for (const x of d.turnos) await IDB.put(IDB.STORES.TURNOS, x);
       if (d.conteos) for (const x of d.conteos) await IDB.put(IDB.STORES.CONTEOS, x);
@@ -73,7 +79,9 @@ function importarDatos(file) {
 async function resetTodo() {
   if (!confirm('¿Borrar TODOS los datos? Esta acción no se puede deshacer.')) return;
   await IDB.clear(IDB.STORES.NEGOCIOS);
+  await IDB.clear(IDB.STORES.CATEGORIAS);
   await IDB.clear(IDB.STORES.PRODUCTOS);
+  await IDB.clear(IDB.STORES.MOVIMIENTOS_INV);
   await IDB.clear(IDB.STORES.VENTAS);
   await IDB.clear(IDB.STORES.TURNOS);
   await IDB.clear(IDB.STORES.CONTEOS);
@@ -143,17 +151,27 @@ const GUIA = `
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">2. Agrega tus productos</strong>
+  <strong style="display:block;margin-bottom:8px">2. Crea categorías</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    Ve a la sección Inventario y pulsa "Nuevo producto". Rellena el nombre, el
-    código (si lo usas), el precio y la cantidad disponible. Repite el proceso
-    con cada producto que vendas. Puedes editar o eliminar cualquier producto
-    tocando su botón correspondiente.
+    En Inventario pulsa "Categoría" para crear las categorías que uses en tu
+    negocio: bebidas, alimentos, aseo, etc. Cada producto puede pertenecer a
+    una categoría, y podrás filtrar el inventario por ella.
   </p>
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">3. Abre un turno de caja</strong>
+  <strong style="display:block;margin-bottom:8px">3. Agrega tus productos</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    En Inventario pulsa "Producto". Rellena el nombre, código, categoría,
+    unidad de medida, precio sugerido, costo, stock actual y stock mínimo.
+    El precio es solo una sugerencia: al vender podrás cambiarlo si lo
+    necesitas. Puedes usar el botón de escanear para leer el código de barras
+    con la cámara.
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:8px">4. Abre un turno de caja</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     Antes de vender, entra en Caja y pulsa "Abrir turno". Escribe el monto de
     dinero con el que empiezas el día. Esto sirve para llevar un control
@@ -162,36 +180,56 @@ const GUIA = `
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">4. Registra una venta</strong>
+  <strong style="display:block;margin-bottom:8px">5. Registra una venta</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     Ve a la sección Vender. Busca el producto por nombre o código y tócalo
-    para agregarlo al ticket. Ajusta las cantidades con los botones más y menos.
-    Cuando termines, pulsa "Cobrar". El stock se descuenta automáticamente y la
-    venta queda registrada en el historial.
+    para agregarlo al ticket. Ajusta la cantidad y, si quieres, cambia el
+    precio. Si lo cambias, el campo se marca en amarillo para que lo veas.
+    Cuando termines, pulsa "Cobrar". El stock se descuenta automáticamente.
   </p>
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">5. Cuenta el efectivo con el contador</strong>
+  <strong style="display:block;margin-bottom:8px">6. Registra entradas y salidas</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    En Inventario, toca un producto para abrir su detalle. Ahí puedes
+    registrar entradas de mercancía (compras), salidas (mermas, roturas) y
+    ajustes por conteo físico. Cada movimiento queda registrado en el
+    historial del producto.
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:8px">7. Imprime etiquetas</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    Si un producto tiene código, en su detalle puedes generar una etiqueta
+    con código de barras o código QR, con el nombre y el precio. Pulsa
+    "Imprimir" para enviarla a la impresora.
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:8px">8. Importa productos desde CSV</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    En Inventario pulsa "Importar" para cargar productos desde un archivo
+    CSV. El archivo debe tener columnas: Nombre, Codigo, Categoria, Unidad,
+    Precio, Costo, Stock, StockMinimo. Si las categorías no existen, se
+    crean automáticamente.
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:8px">9. Cuenta el efectivo con el contador</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     En la sección Contador introduce cuántos billetes o monedas tienes de cada
     denominación. La aplicación calcula el total automáticamente. Si escribes
     el monto esperado en caja, te muestra la diferencia y te avisa si sobra o
-    falta dinero. Puedes guardar el conteo para consultarlo después.
+    falta dinero.
   </p>
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">6. Retira dinero de la caja (sangría)</strong>
-  <p style="font-size:14px;line-height:1.6;margin:0">
-    Si necesitas sacar dinero de la caja durante el día, entra en Caja,
-    escribe el monto, el motivo y pulsa "Registrar retiro". La aplicación
-    descuenta ese monto del efectivo esperado al cerrar el turno.
-  </p>
-</div>
-
-<div class="card">
-  <strong style="display:block;margin-bottom:8px">7. Cierra el turno</strong>
+  <strong style="display:block;margin-bottom:8px">10. Cierra el turno</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     Al final del día, usa el contador para revisar cuánto efectivo tienes.
     Luego entra en Caja y pulsa "Cerrar turno". La aplicación guarda un resumen
@@ -200,7 +238,7 @@ const GUIA = `
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">8. Consulta reportes</strong>
+  <strong style="display:block;margin-bottom:8px">11. Consulta reportes</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     En Reportes puedes ver el total vendido hoy, el total histórico y el
     listado de las últimas transacciones. También puedes exportar todo a un
@@ -209,17 +247,17 @@ const GUIA = `
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">9. Maneja varios negocios</strong>
+  <strong style="display:block;margin-bottom:8px">12. Maneja varios negocios</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    En Ajustes pulsa "Gestionar negocios". Puedes crear tantos como necesites.
-    Cada negocio tiene sus propios productos, ventas, turnos y conteos. El
-    negocio activo aparece en la parte superior de cada pantalla. Toca ese
-    botón para cambiar de negocio o crear uno nuevo.
+    En Ajustes pulsa "Gestionar negocios". Cada negocio tiene sus propios
+    productos, ventas, turnos, categorías y conteos. El negocio activo
+    aparece en la parte superior de cada pantalla. Toca ese botón para
+    cambiar de negocio o crear uno nuevo.
   </p>
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">10. Haz copias de seguridad</strong>
+  <strong style="display:block;margin-bottom:8px">13. Haz copias de seguridad</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     Entra en Ajustes y pulsa "Exportar datos (JSON)". Se descargará un archivo
     con toda la información de todos tus negocios. Guárdalo en un lugar
@@ -229,21 +267,11 @@ const GUIA = `
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">11. Instala la app en tu teléfono</strong>
-  <p style="font-size:14px;line-height:1.6;margin:0">
-    Abre la aplicación con conexión a internet la primera vez. Cuando el
-    navegador lo permita, aparecerá en Ajustes una opción para instalar la
-    app en tu pantalla de inicio. También puedes instalarla desde el menú
-    del navegador con "Añadir a pantalla de inicio".
-  </p>
-</div>
-
-<div class="card">
   <strong style="display:block;margin-bottom:8px">Recomendaciones</strong>
   <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px">
     <li>Exporta una copia de seguridad cada semana.</li>
     <li>No borres los datos del navegador si no has exportado antes.</li>
-    <li>Mantén el stock actualizado para evitar vender sin existencias.</li>
+    <li>Configura el stock mínimo para que te avise cuando falte mercancía.</li>
     <li>Cierra el turno todos los días para llevar un control ordenado.</li>
   </ul>
 </div>
@@ -313,7 +341,36 @@ const HISTORIAL = `
         Ahora la gestión se hace únicamente desde "Gestionar negocios".</li>
     <li>Mejoras en el sistema de auto-actualización: la aplicación revisa
         cambios cada 30 minutos y al abrirse.</li>
-    <li>Este historial de cambios y actualizaciones.</li>
+    <li>Historial de cambios y actualizaciones dentro de Ajustes.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <strong style="font-size:16px;color:var(--primary)">Versión 1.3.0</strong>
+    <span style="font-size:12px;color:var(--muted)">Bloque 4 y 4.1</span>
+  </div>
+  <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px">
+    <li>Precios variables: el precio es solo una sugerencia y puede
+        cambiarse en cada venta.</li>
+    <li>Categorías de productos configurables por el usuario.</li>
+    <li>Unidades de medida: unidad, libra, kilogramo, litro, metro,
+        paquete, caja y docena.</li>
+    <li>Costo y margen de ganancia por producto.</li>
+    <li>Stock mínimo por producto con alertas visuales.</li>
+    <li>Panel de alertas en la pantalla de venta cuando hay productos
+        con stock bajo o agotado.</li>
+    <li>Entradas de mercancía (compras a proveedores).</li>
+    <li>Salidas de inventario (mermas, roturas).</li>
+    <li>Ajustes por conteo físico.</li>
+    <li>Historial de movimientos por producto.</li>
+    <li>Filtro de productos por categoría y por estado de stock.</li>
+    <li>Escaneo de códigos de barras con la cámara del teléfono.</li>
+    <li>Generación e impresión de etiquetas con código de barras o QR.</li>
+    <li>Importación masiva de productos desde archivo CSV.</li>
+    <li>Exportación del inventario completo a CSV.</li>
+    <li>Cantidades y stock con soporte para decimales.</li>
+    <li>Actualización del historial de cambios y de la versión visible.</li>
   </ul>
 </div>
 
@@ -323,12 +380,13 @@ const HISTORIAL = `
     Funciones planificadas para futuras actualizaciones:
   </p>
   <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px">
-    <li>Precios variables de productos según el día.</li>
-    <li>Categorías de productos configurables por el usuario.</li>
-    <li>Unidades de medida (unidad, libra, kilogramo, litro).</li>
-    <li>Costo y margen de ganancia por producto.</li>
-    <li>Alertas de stock bajo.</li>
-    <li>Entradas de mercancía y ajustes de inventario.</li>
+    <li>Descuentos por ticket o por producto.</li>
+    <li>Cobro mixto: efectivo, transferencia y USD en una misma venta.</li>
+    <li>Ventas en espera.</li>
+    <li>Cliente ocasional o registrado.</li>
+    <li>Notas en la venta.</li>
+    <li>Impresión de ticket en formato 58 mm u 80 mm.</li>
+    <li>Envío del ticket por WhatsApp.</li>
     <li>Registro de vendedores con roles y permisos por PIN.</li>
     <li>Ingresos y gastos por categorías, tanto para el negocio como
         para finanzas personales.</li>
@@ -363,7 +421,8 @@ const FAQ = `
   <strong style="display:block;margin-bottom:6px">¿Necesito internet para usarla?</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     No. Solo necesitas conexión la primera vez que la abres, para que se
-    descarguen los estilos y los íconos. Después funciona sin internet.
+    descarguen los estilos, los íconos y las librerías de códigos de barras
+    y QR. Después funciona sin internet.
   </p>
 </div>
 
@@ -379,9 +438,54 @@ const FAQ = `
 <div class="card">
   <strong style="display:block;margin-bottom:6px">¿Puedo tener varios negocios en la misma app?</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    Sí. Cada negocio tiene sus propios productos, ventas, turnos y conteos,
-    completamente separados. Puedes cambiar de negocio en cualquier momento
-    desde el botón que aparece en la parte superior de cada pantalla.
+    Sí. Cada negocio tiene sus propios productos, categorías, ventas, turnos
+    y conteos, completamente separados. Puedes cambiar de negocio en cualquier
+    momento desde el botón que aparece en la parte superior de cada pantalla.
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:6px">¿Los precios son fijos?</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    No. El precio del producto es solo una sugerencia. Al agregarlo al ticket
+    de venta puedes cambiarlo libremente. Si el precio es distinto al
+    sugerido, el campo se marca en amarillo para que lo tengas presente.
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:6px">¿Cómo funcionan las alertas de stock?</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    Cada producto puede tener un stock mínimo. Cuando el stock baja a ese
+    número o menos, la app lo marca con color y aparece un aviso en la
+    pantalla de venta. Así sabes qué reponer sin revisar manualmente.
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:6px">¿Puedo escanear códigos de barras?</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    Sí. En el formulario de producto hay un botón de escanear que abre la
+    cámara y lee el código automáticamente. Funciona en navegadores
+    compatibles (Chrome para Android, por ejemplo).
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:6px">¿Puedo imprimir etiquetas con código de barras?</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    Sí. En el detalle de cualquier producto que tenga código, puedes generar
+    una etiqueta con código de barras o QR y pulsar "Imprimir". Sale con el
+    nombre, el precio y el código del producto.
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:6px">¿Cómo importo productos desde un archivo?</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    En Inventario pulsa "Importar" y elige un archivo CSV. El archivo debe
+    tener estas columnas: Nombre, Codigo, Categoria, Unidad, Precio, Costo,
+    Stock, StockMinimo. Si las categorías no existen, se crean solas.
   </p>
 </div>
 
@@ -411,52 +515,10 @@ const FAQ = `
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:6px">¿Qué significan sobrante y faltante en el contador?</strong>
-  <p style="font-size:14px;line-height:1.6;margin:0">
-    Si cuentas más dinero del que debería haber, aparece un sobrante. Si
-    cuentas menos, aparece un faltante. Se calcula comparando el total contado
-    con el monto esperado que hayas escrito.
-  </p>
-</div>
-
-<div class="card">
   <strong style="display:block;margin-bottom:6px">¿Puedo trabajar con dólares y pesos a la vez?</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     Sí. En Ajustes puedes configurar la tasa de cambio USD a CUP. El contador
     también permite alternar entre ambas monedas.
-  </p>
-</div>
-
-<div class="card">
-  <strong style="display:block;margin-bottom:6px">¿Cómo recupero mis datos si cambio de teléfono?</strong>
-  <p style="font-size:14px;line-height:1.6;margin:0">
-    Exporta un archivo JSON desde el teléfono antiguo. En el nuevo, entra en
-    Ajustes, pulsa "Importar datos" y selecciona ese archivo. Toda la
-    información se restaura.
-  </p>
-</div>
-
-<div class="card">
-  <strong style="display:block;margin-bottom:6px">¿La aplicación tiene publicidad?</strong>
-  <p style="font-size:14px;line-height:1.6;margin:0">
-    No. No hay anuncios, ni rastreo, ni recopilación de datos personales.
-  </p>
-</div>
-
-<div class="card">
-  <strong style="display:block;margin-bottom:6px">¿Puedo vender sin haber abierto un turno?</strong>
-  <p style="font-size:14px;line-height:1.6;margin:0">
-    Sí, pero la venta no quedará asociada a ningún turno. Se recomienda abrir
-    un turno al inicio del día para llevar un control correcto del efectivo.
-  </p>
-</div>
-
-<div class="card">
-  <strong style="display:block;margin-bottom:6px">¿Qué hago si la app no se instala como PWA?</strong>
-  <p style="font-size:14px;line-height:1.6;margin:0">
-    Abre la web con buena conexión la primera vez, espera unos segundos y
-    vuelve a intentar. Si sigue sin funcionar, revisa que no estés usando una
-    ventana de incógnito y que el navegador permita instalar apps.
   </p>
 </div>
 
@@ -488,16 +550,19 @@ const PRIVACIDAD = `
   <p style="font-size:14px;line-height:1.6;margin:0">
     CajaFácil Cuba no recopila ningún dato personal. No solicita nombre,
     correo electrónico, teléfono, ubicación, contactos, cámara, micrófono ni
-    ninguna otra información del usuario.
+    ninguna otra información del usuario. La cámara solo se usa cuando el
+    usuario decide escanear un código de barras, y la imagen no se guarda ni
+    se envía a ningún lado.
   </p>
 </div>
 
 <div class="card">
   <strong style="display:block;margin-bottom:6px">2. Dónde se guarda la información</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    Toda la información que introduces (negocios, productos, ventas, conteos,
-    turnos y ajustes) se guarda exclusivamente en la base de datos interna del
-    navegador de tu dispositivo. Nunca sale de él.
+    Toda la información que introduces (negocios, categorías, productos,
+    movimientos, ventas, conteos, turnos y ajustes) se guarda exclusivamente
+    en la base de datos interna del navegador de tu dispositivo. Nunca sale
+    de él.
   </p>
 </div>
 
@@ -505,8 +570,9 @@ const PRIVACIDAD = `
   <strong style="display:block;margin-bottom:6px">3. Uso de internet</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     La aplicación solo usa internet la primera vez que se abre, para descargar
-    los recursos visuales (estilos e íconos), y para buscar actualizaciones de
-    la propia aplicación. En ningún caso se envían datos del usuario.
+    los recursos visuales (estilos, íconos y librerías de códigos de barras y
+    QR), y para buscar actualizaciones de la propia aplicación. En ningún caso
+    se envían datos del usuario.
   </p>
 </div>
 
@@ -532,8 +598,9 @@ const PRIVACIDAD = `
   <p style="font-size:14px;line-height:1.6;margin:0">
     No se comparten datos con terceros porque no se recopilan datos. Los
     únicos servicios externos que se cargan la primera vez son las librerías
-    visuales TailwindCSS y Tabler Icons, que no acceden a la información de
-    la aplicación.
+    visuales TailwindCSS y Tabler Icons, y las librerías de generación de
+    códigos de barras y QR. Ninguna de ellas accede a la información de la
+    aplicación.
   </p>
 </div>
 
