@@ -1,4 +1,4 @@
-const CACHE = 'caja-facil-cuba-v4';
+const CACHE = 'caja-facil-cuba-v5';
 
 const LOCAL_ASSETS = [
   './',
