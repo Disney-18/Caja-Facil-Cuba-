@@ -1,17 +1,33 @@
 // ============================================================
-// CajaFácil Cuba - Inventario renovado
-// Bloque 4: categorías, unidades, precios variables, movimientos
+// CajaFácil Cuba - Inventario renovado + Bloque 4.1
+// Escaneo, etiquetas, importar y exportar CSV
 // Desarrollado por Disney Gutiérrez Guevara
 // ============================================================
 
 let editId = null;
 let panelProductoId = null;
+let streamEscaner = null;
+let intervaloEscaner = null;
+let modoEscaner = 'producto';
 
-function renderInventario(filtro = '', categoriaId = '') {
+// ------------------------------------------------------------
+// Render principal
+// ------------------------------------------------------------
+
+function renderInventario(filtro = '', categoriaId = '', filtroStock = '') {
   const tb = document.getElementById('lista');
   const q = filtro.trim().toLowerCase();
+
   const lista = State.productos.filter(p => {
     if (categoriaId && p.categoria_id !== categoriaId) return false;
+
+    if (filtroStock === 'bajo') {
+      const min = p.stock_minimo || 0;
+      if (!(min > 0 && (p.stock || 0) <= min)) return false;
+    } else if (filtroStock === 'disponible') {
+      if ((p.stock || 0) <= 0) return false;
+    }
+
     if (!q) return true;
     return p.nombre.toLowerCase().includes(q) || (p.codigo || '').toLowerCase().includes(q);
   });
@@ -74,6 +90,18 @@ function renderListaCategorias() {
     </div>
   `).join('');
 }
+
+function aplicarFiltros() {
+  renderInventario(
+    document.getElementById('filtro').value,
+    document.getElementById('filtro-categoria').value,
+    document.getElementById('filtro-stock').value
+  );
+}
+
+// ------------------------------------------------------------
+// Formularios
+// ------------------------------------------------------------
 
 function mostrarFormProducto(show) {
   document.getElementById('form-producto').style.display = show ? 'block' : 'none';
@@ -172,7 +200,7 @@ async function guardarProductoHandler() {
   }
 
   mostrarFormProducto(false);
-  renderInventario(document.getElementById('filtro').value, document.getElementById('filtro-categoria').value);
+  aplicarFiltros();
   toast('Guardado');
 }
 
@@ -183,7 +211,7 @@ async function guardarCategoriaHandler() {
   document.getElementById('c-nombre').value = '';
   renderListaCategorias();
   renderSelectores();
-  renderInventario(document.getElementById('filtro').value, document.getElementById('filtro-categoria').value);
+  aplicarFiltros();
   toast('Categoría creada');
 }
 
@@ -192,11 +220,11 @@ async function borrarCategoria(id) {
   await eliminarCategoria(id);
   renderListaCategorias();
   renderSelectores();
-  renderInventario(document.getElementById('filtro').value, document.getElementById('filtro-categoria').value);
+  aplicarFiltros();
 }
 
 // ------------------------------------------------------------
-// Panel de detalle del producto
+// Panel de detalle
 // ------------------------------------------------------------
 
 function abrirProducto(id) {
@@ -206,6 +234,7 @@ function abrirProducto(id) {
 
   const movs = State.movimientosInv.filter(m => m.producto_id === id).slice(0, 30);
   const margen = p.costo > 0 ? ((p.precio - p.costo) / p.costo) * 100 : null;
+  const tieneCodigo = p.codigo && p.codigo.trim().length > 0;
 
   const html = `
     <div class="card">
@@ -223,6 +252,27 @@ function abrirProducto(id) {
         ${p.stock_minimo > 0 ? `<tr><td>Stock mínimo</td><td style="text-align:right">${fmt(p.stock_minimo)}</td></tr>` : ''}
       </table>
     </div>
+
+    ${tieneCodigo ? `
+    <div class="card">
+      <strong style="display:block;margin-bottom:10px">Etiqueta</strong>
+      <div style="display:flex;gap:10px;margin-bottom:10px">
+        <button class="btn" style="flex:1" onclick="mostrarEtiqueta('${p.id}','barcode')">
+          <i class="ti ti-barcode"></i> Código de barras
+        </button>
+        <button class="btn" style="flex:1" onclick="mostrarEtiqueta('${p.id}','qr')">
+          <i class="ti ti-qrcode"></i> Código QR
+        </button>
+      </div>
+      <div id="etiqueta-zona"></div>
+    </div>
+    ` : `
+    <div class="card">
+      <div style="font-size:13px;color:var(--muted)">
+        Este producto no tiene código. Añádele uno para generar su etiqueta.
+      </div>
+    </div>
+    `}
 
     <div class="card">
       <strong style="display:block;margin-bottom:10px">Registrar movimiento</strong>
@@ -321,15 +371,332 @@ async function registrarMovimientoPanel() {
 
   toast('Movimiento registrado');
   abrirProducto(panelProductoId);
-  renderInventario(document.getElementById('filtro').value, document.getElementById('filtro-categoria').value);
+  aplicarFiltros();
 }
 
 async function eliminarProductoPanel(id) {
   if (!confirm('¿Eliminar este producto y su historial de movimientos?')) return;
   await eliminarProducto(id);
   cerrarPanel();
-  renderInventario(document.getElementById('filtro').value, document.getElementById('filtro-categoria').value);
+  aplicarFiltros();
   toast('Producto eliminado');
+}
+
+// ------------------------------------------------------------
+// Etiquetas: código de barras y QR
+// ------------------------------------------------------------
+
+function mostrarEtiqueta(id, tipo) {
+  const p = State.productos.find(x => x.id === id);
+  if (!p || !p.codigo) return;
+
+  const zona = document.getElementById('etiqueta-zona');
+  zona.innerHTML = `
+    <div id="etiqueta-imprimible" class="etiqueta">
+      <div class="etiqueta-nombre">${p.nombre}</div>
+      <div class="etiqueta-precio">${money(p.precio)}</div>
+      <div class="etiqueta-codigo" id="etiqueta-grafico"></div>
+      <div class="etiqueta-codigo-texto">${p.codigo}</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="imprimirEtiqueta()">
+        <i class="ti ti-printer"></i> Imprimir
+      </button>
+      <button class="btn" onclick="document.getElementById('etiqueta-zona').innerHTML=''">
+        Cerrar
+      </button>
+    </div>
+  `;
+
+  if (tipo === 'barcode') {
+    try {
+      JsBarcode('#etiqueta-grafico', p.codigo, {
+        format: 'CODE128',
+        displayValue: false,
+        height: 50,
+        margin: 0
+      });
+    } catch {
+      zona.querySelector('#etiqueta-grafico').innerHTML = 'Código no válido para barras';
+    }
+  } else {
+    const cont = zona.querySelector('#etiqueta-grafico');
+    cont.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    cont.appendChild(canvas);
+    if (window.QRCode && QRCode.toCanvas) {
+      QRCode.toCanvas(canvas, p.codigo, { width: 140, margin: 1 });
+    } else {
+      cont.innerHTML = 'Generador QR no disponible';
+    }
+  }
+}
+
+function imprimirEtiqueta() {
+  const contenido = document.getElementById('etiqueta-imprimible');
+  if (!contenido) return;
+
+  const ventana = window.open('', '_blank', 'width=400,height=600');
+  ventana.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Etiqueta</title>
+      <style>
+        body {
+          font-family: system-ui, sans-serif;
+          padding: 20px;
+          text-align: center;
+          color: #000;
+        }
+        .etiqueta {
+          display: inline-block;
+          border: 1px solid #000;
+          padding: 12px;
+          border-radius: 8px;
+          min-width: 200px;
+        }
+        .etiqueta-nombre {
+          font-weight: 700;
+          font-size: 14px;
+          margin-bottom: 4px;
+        }
+        .etiqueta-precio {
+          font-size: 20px;
+          font-weight: 700;
+          margin-bottom: 8px;
+        }
+        .etiqueta-codigo svg,
+        .etiqueta-codigo canvas {
+          max-width: 100%;
+          height: auto;
+        }
+        .etiqueta-codigo-texto {
+          font-size: 11px;
+          margin-top: 4px;
+          letter-spacing: 1px;
+        }
+      </style>
+    </head>
+    <body>${contenido.outerHTML}</body>
+    </html>
+  `);
+  ventana.document.close();
+  ventana.focus();
+  setTimeout(() => { ventana.print(); }, 300);
+}
+
+// ------------------------------------------------------------
+// Escáner de códigos de barras
+// ------------------------------------------------------------
+
+async function abrirEscaner(modo = 'producto') {
+  modoEscaner = modo;
+
+  if (!('BarcodeDetector' in window)) {
+    toast('Escáner no soportado en este navegador');
+    return;
+  }
+
+  const modal = document.getElementById('modal-escanner');
+  modal.style.display = 'flex';
+
+  const info = document.getElementById('escanner-info');
+  info.textContent = 'Iniciando cámara...';
+
+  try {
+    streamEscaner = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
+    const video = document.getElementById('video-escanner');
+    video.srcObject = streamEscaner;
+    await video.play();
+
+    info.textContent = 'Apunta la cámara al código de barras';
+
+    const detector = new BarcodeDetector({
+      formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code']
+    });
+
+    intervaloEscaner = setInterval(async () => {
+      try {
+        const codigos = await detector.detect(video);
+        if (codigos.length > 0) {
+          const valor = codigos[0].rawValue;
+          detenerEscaner();
+          aplicarCodigoEscaneado(valor);
+        }
+      } catch {}
+    }, 400);
+
+  } catch (e) {
+    toast('No se pudo acceder a la cámara');
+    cerrarEscaner();
+  }
+}
+
+function detenerEscaner() {
+  if (intervaloEscaner) {
+    clearInterval(intervaloEscaner);
+    intervaloEscaner = null;
+  }
+  if (streamEscaner) {
+    streamEscaner.getTracks().forEach(t => t.stop());
+    streamEscaner = null;
+  }
+}
+
+function cerrarEscaner() {
+  detenerEscaner();
+  document.getElementById('modal-escanner').style.display = 'none';
+}
+
+function aplicarCodigoEscaneado(valor) {
+  if (modoEscaner === 'producto') {
+    document.getElementById('p-codigo').value = valor;
+  }
+  toast('Código: ' + valor);
+}
+
+// ------------------------------------------------------------
+// Importar y exportar CSV
+// ------------------------------------------------------------
+
+function exportarInventarioCSV() {
+  if (!State.productos.length) { toast('Sin productos'); return; }
+
+  const filas = [['Nombre', 'Codigo', 'Categoria', 'Unidad', 'Precio', 'Costo', 'Stock', 'StockMinimo']];
+
+  for (const p of State.productos) {
+    filas.push([
+      p.nombre,
+      p.codigo || '',
+      p.categoria_id ? nombreCategoria(p.categoria_id) : '',
+      p.unidad || 'unidad',
+      p.precio || 0,
+      p.costo || 0,
+      p.stock || 0,
+      p.stock_minimo || 0
+    ]);
+  }
+
+  const csv = filas.map(f => f.map(x => `"${String(x).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `inventario_${Date.now()}.csv`;
+  a.click();
+}
+
+function abrirImportadorCSV() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv,text/csv';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (file) importarCSV(file);
+  };
+  input.click();
+}
+
+function importarCSV(file) {
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const texto = String(ev.target.result).replace(/^\ufeff/, '');
+      const lineas = texto.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lineas.length < 2) { toast('Archivo vacío'); return; }
+
+      const cabecera = parsearLineaCSV(lineas[0]).map(s => s.trim().toLowerCase());
+      const idx = {
+        nombre: cabecera.indexOf('nombre'),
+        codigo: cabecera.indexOf('codigo'),
+        categoria: cabecera.indexOf('categoria'),
+        unidad: cabecera.indexOf('unidad'),
+        precio: cabecera.indexOf('precio'),
+        costo: cabecera.indexOf('costo'),
+        stock: cabecera.indexOf('stock'),
+        stockMinimo: cabecera.indexOf('stockminimo')
+      };
+
+      if (idx.nombre === -1) { toast('Falta la columna Nombre'); return; }
+
+      let importados = 0;
+      const nuevasCategorias = {};
+
+      for (let i = 1; i < lineas.length; i++) {
+        const celdas = parsearLineaCSV(lineas[i]);
+        const nombre = (celdas[idx.nombre] || '').trim();
+        if (!nombre) continue;
+
+        let categoria_id = null;
+        if (idx.categoria !== -1 && celdas[idx.categoria]) {
+          const nombreCat = celdas[idx.categoria].trim();
+          if (nombreCat) {
+            let cat = State.categorias.find(c => c.nombre.toLowerCase() === nombreCat.toLowerCase());
+            if (!cat) {
+              cat = nuevasCategorias[nombreCat] || { id: uid(), nombre: nombreCat };
+              nuevasCategorias[nombreCat] = cat;
+            }
+            categoria_id = cat.id;
+          }
+        }
+
+        const producto = {
+          id: uid(),
+          nombre,
+          codigo: idx.codigo !== -1 ? (celdas[idx.codigo] || '').trim() : '',
+          categoria_id,
+          unidad: idx.unidad !== -1 ? (celdas[idx.unidad] || 'unidad').trim() : 'unidad',
+          precio: idx.precio !== -1 ? parseFloat(celdas[idx.precio]) || 0 : 0,
+          costo: idx.costo !== -1 ? parseFloat(celdas[idx.costo]) || 0 : 0,
+          stock: idx.stock !== -1 ? parseFloat(celdas[idx.stock]) || 0 : 0,
+          stock_minimo: idx.stockMinimo !== -1 ? parseFloat(celdas[idx.stockMinimo]) || 0 : 0,
+          creado: new Date().toISOString()
+        };
+
+        await guardarProducto(producto);
+        importados++;
+      }
+
+      for (const nombreCat in nuevasCategorias) {
+        await guardarCategoria(nuevasCategorias[nombreCat]);
+      }
+
+      renderSelectores();
+      aplicarFiltros();
+      toast(`${importados} productos importados`);
+    } catch (err) {
+      console.error(err);
+      toast('Error al leer el archivo');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function parsearLineaCSV(linea) {
+  const celdas = [];
+  let actual = '';
+  let dentro = false;
+
+  for (let i = 0; i < linea.length; i++) {
+    const c = linea[i];
+    if (c === '"') {
+      if (dentro && linea[i + 1] === '"') {
+        actual += '"';
+        i++;
+      } else {
+        dentro = !dentro;
+      }
+    } else if (c === ',' && !dentro) {
+      celdas.push(actual);
+      actual = '';
+    } else {
+      actual += c;
+    }
+  }
+  celdas.push(actual);
+  return celdas;
 }
 
 // ------------------------------------------------------------
@@ -347,21 +714,26 @@ window.addEventListener('estado-listo', () => {
   document.getElementById('btn-guardar-categoria').addEventListener('click', guardarCategoriaHandler);
   document.getElementById('btn-cerrar-categoria').addEventListener('click', () => mostrarFormCategoria(false));
 
+  document.getElementById('btn-escanear-producto').addEventListener('click', () => abrirEscaner('producto'));
+  document.getElementById('btn-importar').addEventListener('click', abrirImportadorCSV);
+  document.getElementById('btn-exportar-inv').addEventListener('click', exportarInventarioCSV);
+
   document.getElementById('p-precio').addEventListener('input', actualizarMargen);
   document.getElementById('p-costo').addEventListener('input', actualizarMargen);
 
-  document.getElementById('filtro').addEventListener('input', e => {
-    renderInventario(e.target.value, document.getElementById('filtro-categoria').value);
-  });
-  document.getElementById('filtro-categoria').addEventListener('change', e => {
-    renderInventario(document.getElementById('filtro').value, e.target.value);
-  });
+  document.getElementById('filtro').addEventListener('input', aplicarFiltros);
+  document.getElementById('filtro-categoria').addEventListener('change', aplicarFiltros);
+  document.getElementById('filtro-stock').addEventListener('change', aplicarFiltros);
 });
 
 window.addEventListener('negocio-cambiado', () => {
   renderSelectores();
-  renderInventario(document.getElementById('filtro')?.value || '', document.getElementById('filtro-categoria')?.value || '');
+  aplicarFiltros();
 });
 
 window.cerrarPanel = cerrarPanel;
 window.abrirProducto = abrirProducto;
+window.mostrarEtiqueta = mostrarEtiqueta;
+window.imprimirEtiqueta = imprimirEtiqueta;
+window.cerrarEscaner = cerrarEscaner;
+window.abrirEscaner = abrirEscaner;
