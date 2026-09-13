@@ -1,17 +1,18 @@
+// ============================================================
+// CajaFácil Cuba - Ajustes, guía, FAQ, privacidad y términos
+// Bloque 3: validación y sin campo duplicado de negocio
+// Desarrollado por Disney Gutiérrez Guevara
+// ============================================================
+
 function cargarAjustes() {
-  document.getElementById('a-negocio').value = State.negocioActivo?.nombre || State.ajustes.negocio || '';
   document.getElementById('a-tasa').value = State.ajustes.tasaUSD || 0;
 }
 
 async function guardarAjustesHandler() {
-  const nombre = document.getElementById('a-negocio').value.trim();
-  State.ajustes.tasaUSD = parseFloat(document.getElementById('a-tasa').value) || 0;
-  if (nombre && State.negocioActivo) {
-    State.negocioActivo.nombre = nombre;
-    await guardarNegocio(State.negocioActivo);
-    pintarNegocioActivo();
-  }
-  State.ajustes.negocio = nombre;
+  const vTasa = Validar.numero(document.getElementById('a-tasa').value, 0, 999999);
+  if (!vTasa.ok) { toast('Tasa: ' + vTasa.msg); return; }
+
+  State.ajustes.tasaUSD = vTasa.valor;
   await guardarAjustes();
   toast('Ajustes guardados');
 }
@@ -25,7 +26,7 @@ async function exportarDatos() {
   const todosMovimientos = await IDB.getAll(IDB.STORES.MOVIMIENTOS);
 
   const data = {
-    version: 2,
+    version: 3,
     fecha: new Date().toISOString(),
     negocios: todosNegocios,
     productos: todosProductos,
@@ -133,8 +134,10 @@ const GUIA = `
 <div class="card">
   <strong style="display:block;margin-bottom:8px">1. Configura tu negocio</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    Antes de empezar, entra en Ajustes y escribe el nombre de tu negocio y la
-    tasa de cambio del dólar si trabajas con ambas monedas. Guarda los cambios.
+    Entra en Ajustes y pulsa "Gestionar negocios" para crear o editar el
+    negocio activo. Puedes tener varios negocios dentro de la misma app,
+    cada uno con sus productos, ventas y caja por separado. Configura también
+    la tasa de cambio del dólar si trabajas con ambas monedas.
   </p>
 </div>
 
@@ -205,21 +208,32 @@ const GUIA = `
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">9. Haz copias de seguridad</strong>
+  <strong style="display:block;margin-bottom:8px">9. Maneja varios negocios</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    Entra en Ajustes y pulsa "Exportar datos (JSON)". Se descargará un archivo
-    con toda la información de tu negocio. Guárdalo en un lugar seguro. Si
-    cambias de teléfono o reinstalas el navegador, puedes importar ese archivo
-    para recuperar todo.
+    En Ajustes pulsa "Gestionar negocios". Puedes crear tantos como necesites.
+    Cada negocio tiene sus propios productos, ventas, turnos y conteos. El
+    negocio activo aparece en la parte superior de cada pantalla. Toca ese
+    botón para cambiar de negocio o crear uno nuevo.
   </p>
 </div>
 
 <div class="card">
-  <strong style="display:block;margin-bottom:8px">10. Instala la app en tu teléfono</strong>
+  <strong style="display:block;margin-bottom:8px">10. Haz copias de seguridad</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    Abre la aplicación con conexión a internet la primera vez. En el menú del
-    navegador, selecciona "Añadir a pantalla de inicio" o "Instalar app". A
-    partir de ese momento tendrás un ícono propio y podrás abrirla sin internet.
+    Entra en Ajustes y pulsa "Exportar datos (JSON)". Se descargará un archivo
+    con toda la información de todos tus negocios. Guárdalo en un lugar
+    seguro. Si cambias de teléfono o reinstalas el navegador, puedes importar
+    ese archivo para recuperar todo.
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:8px">11. Instala la app en tu teléfono</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    Abre la aplicación con conexión a internet la primera vez. Cuando el
+    navegador lo permita, aparecerá en Ajustes una opción para instalar la
+    app en tu pantalla de inicio. También puedes instalarla desde el menú
+    del navegador con "Añadir a pantalla de inicio".
   </p>
 </div>
 
@@ -254,9 +268,18 @@ const FAQ = `
 <div class="card">
   <strong style="display:block;margin-bottom:6px">¿Dónde se guardan mis datos?</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    En tu propio dispositivo. Desde esta versión la aplicación usa una base
-    de datos interna del navegador llamada IndexedDB, más robusta y con mayor
-    capacidad que el almacenamiento anterior.
+    En tu propio dispositivo. La aplicación usa una base de datos interna
+    del navegador llamada IndexedDB, más robusta y con mayor capacidad que
+    el almacenamiento tradicional.
+  </p>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:6px">¿Puedo tener varios negocios en la misma app?</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    Sí. Cada negocio tiene sus propios productos, ventas, turnos y conteos,
+    completamente separados. Puedes cambiar de negocio en cualquier momento
+    desde el botón que aparece en la parte superior de cada pantalla.
   </p>
 </div>
 
@@ -279,9 +302,9 @@ const FAQ = `
 <div class="card">
   <strong style="display:block;margin-bottom:6px">¿Cómo instalo la aplicación en mi teléfono?</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    Abre la web con internet, entra en el menú del navegador y elige "Añadir a
-    pantalla de inicio" o "Instalar app". Quedará un ícono en tu pantalla como
-    cualquier otra aplicación.
+    Abre la web con internet. Cuando el navegador lo permita, aparecerá una
+    tarjeta en Ajustes con el botón "Instalar en mi teléfono". También puedes
+    hacerlo desde el menú del navegador con "Añadir a pantalla de inicio".
   </p>
 </div>
 
@@ -330,8 +353,8 @@ const FAQ = `
   <strong style="display:block;margin-bottom:6px">¿Qué hago si la app no se instala como PWA?</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     Abre la web con buena conexión la primera vez, espera unos segundos y
-    vuelve a intentar desde el menú del navegador. Si sigue sin funcionar,
-    revisa que no estés usando una ventana de incógnito.
+    vuelve a intentar. Si sigue sin funcionar, revisa que no estés usando una
+    ventana de incógnito y que el navegador permita instalar apps.
   </p>
 </div>
 `;
@@ -360,8 +383,8 @@ const PRIVACIDAD = `
 <div class="card">
   <strong style="display:block;margin-bottom:6px">2. Dónde se guarda la información</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
-    Toda la información que introduces (productos, ventas, conteos, turnos y
-    ajustes) se guarda exclusivamente en la base de datos interna del
+    Toda la información que introduces (negocios, productos, ventas, conteos,
+    turnos y ajustes) se guarda exclusivamente en la base de datos interna del
     navegador de tu dispositivo. Nunca sale de él.
   </p>
 </div>
@@ -464,7 +487,7 @@ const TERMINOS = `
   <p style="font-size:14px;line-height:1.6;margin:0">
     CajaFácil Cuba es una herramienta de gestión comercial que permite
     registrar ventas, controlar inventario, contar efectivo y administrar
-    turnos de caja. Está destinada a pequeños y medianos negocios.
+    turnos de caja. Soporta múltiples negocios dentro de una misma instalación.
   </p>
 </div>
 
