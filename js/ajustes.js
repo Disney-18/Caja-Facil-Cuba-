@@ -1,6 +1,6 @@
 // ============================================================
-// CajaFácil Cuba - Ajustes, guía, FAQ, privacidad y términos
-// Bloque 3: validación y sin campo duplicado de negocio
+// CajaFácil Cuba - Ajustes, guía, historial, FAQ, privacidad y términos
+// Bloque 3.1: historial de cambios añadido
 // Desarrollado por Disney Gutiérrez Guevara
 // ============================================================
 
@@ -90,6 +90,7 @@ function abrirSeccion(id) {
 
   const secciones = {
     guia: { titulo: 'Guía de uso', html: GUIA },
+    historial: { titulo: 'Historial de cambios', html: HISTORIAL },
     faq: { titulo: 'Preguntas frecuentes', html: FAQ },
     privacidad: { titulo: 'Política de privacidad', html: PRIVACIDAD },
     terminos: { titulo: 'Términos y condiciones', html: TERMINOS }
@@ -248,6 +249,107 @@ const GUIA = `
 </div>
 `;
 
+const HISTORIAL = `
+<div class="card">
+  <strong style="display:block;margin-bottom:8px">Historial de cambios y actualizaciones</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    Registro cronológico de todas las mejoras y funciones añadidas a
+    CajaFácil Cuba desde su primera versión hasta la actualidad.
+  </p>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <strong style="font-size:16px;color:var(--primary)">Versión 1.0.0</strong>
+    <span style="font-size:12px;color:var(--muted)">Primera versión</span>
+  </div>
+  <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px">
+    <li>Punto de venta con ticket editable y búsqueda de productos.</li>
+    <li>Inventario con alta, edición y eliminación de productos.</li>
+    <li>Contador de efectivo con denominaciones CUP y USD.</li>
+    <li>Caja y turnos con registro de retiros (sangría) y cierre diario.</li>
+    <li>Reportes de ventas del día e historial completo.</li>
+    <li>Exportación de ventas a CSV.</li>
+    <li>Copia de seguridad en archivo JSON.</li>
+    <li>Tema claro y oscuro.</li>
+    <li>Guía de uso, preguntas frecuentes, política de privacidad y
+        términos y condiciones.</li>
+    <li>Funciona 100% offline.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <strong style="font-size:16px;color:var(--primary)">Versión 1.1.0</strong>
+    <span style="font-size:12px;color:var(--muted)">Bloque 1 y 2</span>
+  </div>
+  <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px">
+    <li>Migración de datos de almacenamiento local a IndexedDB.</li>
+    <li>Soporte para múltiples negocios dentro de la misma aplicación.</li>
+    <li>Selector de negocio activo en la parte superior de cada pantalla.</li>
+    <li>Nueva sección "Negocios" para crear, editar y eliminar negocios.</li>
+    <li>Cada negocio con su propio inventario, ventas, caja y conteos,
+        completamente separados.</li>
+    <li>Ícono y color personalizado por negocio.</li>
+    <li>Migración automática de datos antiguos a la nueva estructura
+        multi-negocio.</li>
+    <li>Sistema de auto-actualización de la aplicación.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <strong style="font-size:16px;color:var(--primary)">Versión 1.2.0</strong>
+    <span style="font-size:12px;color:var(--muted)">Bloque 3</span>
+  </div>
+  <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px">
+    <li>Botón de instalación de la aplicación dentro de Ajustes.</li>
+    <li>Validación de formularios en productos, negocios, caja,
+        contador y ajustes.</li>
+    <li>Mensajes de error claros cuando se introduce un dato inválido.</li>
+    <li>Manejo global de errores: si algo falla, la aplicación avisa al
+        usuario y no se queda en blanco.</li>
+    <li>Eliminada la duplicidad del campo "Nombre del negocio" en Ajustes.
+        Ahora la gestión se hace únicamente desde "Gestionar negocios".</li>
+    <li>Mejoras en el sistema de auto-actualización: la aplicación revisa
+        cambios cada 30 minutos y al abrirse.</li>
+    <li>Este historial de cambios y actualizaciones.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:8px">Próximas versiones</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0 0 10px 0">
+    Funciones planificadas para futuras actualizaciones:
+  </p>
+  <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px">
+    <li>Precios variables de productos según el día.</li>
+    <li>Categorías de productos configurables por el usuario.</li>
+    <li>Unidades de medida (unidad, libra, kilogramo, litro).</li>
+    <li>Costo y margen de ganancia por producto.</li>
+    <li>Alertas de stock bajo.</li>
+    <li>Entradas de mercancía y ajustes de inventario.</li>
+    <li>Registro de vendedores con roles y permisos por PIN.</li>
+    <li>Ingresos y gastos por categorías, tanto para el negocio como
+        para finanzas personales.</li>
+    <li>Control de deudas por cobrar y por pagar.</li>
+    <li>Presupuestos mensuales y metas de ahorro.</li>
+    <li>Reportes por fecha, producto, vendedor y forma de pago.</li>
+    <li>Gráficos de evolución y exportación a PDF.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:6px">Notas sobre actualizaciones</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    CajaFácil Cuba se actualiza automáticamente. Cuando haya una nueva
+    versión disponible, la aplicación la descargará sola y se reiniciará
+    con los cambios. No es necesario desinstalar ni reinstalar nada, y tus
+    datos se conservan intactos entre actualizaciones.
+  </p>
+</div>
+`;
+
 const FAQ = `
 <div class="card">
   <strong style="display:block;margin-bottom:6px">¿La aplicación es realmente gratis?</strong>
@@ -357,6 +459,16 @@ const FAQ = `
     ventana de incógnito y que el navegador permita instalar apps.
   </p>
 </div>
+
+<div class="card">
+  <strong style="display:block;margin-bottom:6px">¿Cómo me entero de las actualizaciones?</strong>
+  <p style="font-size:14px;line-height:1.6;margin:0">
+    La aplicación se actualiza sola. Cuando haya cambios, verás un aviso
+    breve indicando que se está aplicando la nueva versión. También puedes
+    consultar el historial completo en Ajustes, dentro de "Historial de
+    cambios".
+  </p>
+</div>
 `;
 
 const PRIVACIDAD = `
@@ -393,9 +505,8 @@ const PRIVACIDAD = `
   <strong style="display:block;margin-bottom:6px">3. Uso de internet</strong>
   <p style="font-size:14px;line-height:1.6;margin:0">
     La aplicación solo usa internet la primera vez que se abre, para descargar
-    los recursos visuales (estilos e íconos). Después funciona de forma
-    totalmente offline. No se envían ni reciben datos del usuario en ningún
-    momento.
+    los recursos visuales (estilos e íconos), y para buscar actualizaciones de
+    la propia aplicación. En ningún caso se envían datos del usuario.
   </p>
 </div>
 
