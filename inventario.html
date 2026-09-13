@@ -22,12 +22,18 @@
 
 <main class="container">
 
-  <div style="display:flex;gap:8px;margin-bottom:12px">
-    <button class="btn btn-primary" style="flex:1" id="btn-nuevo-producto">
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <button class="btn btn-primary" style="flex:1;min-width:120px" id="btn-nuevo-producto">
       <i class="ti ti-plus"></i> Producto
     </button>
-    <button class="btn" style="flex:1" id="btn-nueva-categoria">
+    <button class="btn" style="flex:1;min-width:120px" id="btn-nueva-categoria">
       <i class="ti ti-tag"></i> Categoría
+    </button>
+    <button class="btn" style="flex:1;min-width:120px" id="btn-importar">
+      <i class="ti ti-upload"></i> Importar
+    </button>
+    <button class="btn" style="flex:1;min-width:120px" id="btn-exportar-inv">
+      <i class="ti ti-download"></i> Exportar
     </button>
   </div>
 
@@ -35,7 +41,12 @@
     <strong id="form-producto-titulo" style="display:block;margin-bottom:12px">Nuevo producto</strong>
 
     <label>Nombre</label>
-    <input class="input" id="p-nombre" maxlength="80">
+    <div style="display:flex;gap:8px">
+      <input class="input" id="p-nombre" maxlength="80">
+      <button class="btn" style="flex-shrink:0" id="btn-escanear-producto" title="Escanear código">
+        <i class="ti ti-barcode"></i>
+      </button>
+    </div>
 
     <div class="grid grid-2" style="margin-top:12px">
       <div>
@@ -100,9 +111,14 @@
 
   <div class="card">
     <input class="input" id="filtro" placeholder="Buscar producto...">
-    <div style="margin-top:10px">
+    <div class="grid grid-2" style="margin-top:10px">
       <select class="input" id="filtro-categoria">
         <option value="">Todas las categorías</option>
+      </select>
+      <select class="input" id="filtro-stock">
+        <option value="">Todo el stock</option>
+        <option value="bajo">Stock bajo o agotado</option>
+        <option value="disponible">Con stock disponible</option>
       </select>
     </div>
   </div>
@@ -132,6 +148,19 @@
   <main class="container" id="panel-contenido"></main>
 </div>
 
+<div id="modal-escanner" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:80;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--surface);border-radius:14px;padding:16px;width:100%;max-width:400px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <strong>Escanear código</strong>
+      <button class="icon-btn" onclick="cerrarEscaner()"><i class="ti ti-x"></i></button>
+    </div>
+    <video id="video-escanner" style="width:100%;border-radius:10px;background:#000" autoplay playsinline></video>
+    <div id="escanner-info" style="margin-top:10px;font-size:13px;color:var(--muted);text-align:center">
+      Apunta la cámara al código de barras
+    </div>
+  </div>
+</div>
+
 <nav class="nav-bottom">
   <a href="index.html"><i class="ti ti-shopping-cart"></i>Vender</a>
   <a href="inventario.html"><i class="ti ti-box"></i>Inventario</a>
@@ -140,6 +169,9 @@
   <a href="reportes.html"><i class="ti ti-chart-bar"></i>Reportes</a>
   <a href="ajustes.html"><i class="ti ti-settings"></i>Ajustes</a>
 </nav>
+
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
 <script src="js/db.js"></script>
 <script src="js/migracion.js"></script>
