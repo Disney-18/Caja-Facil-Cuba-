@@ -1,4 +1,4 @@
-const CACHE = 'caja-facil-cuba-v6';
+const CACHE = 'caja-facil-cuba-v7';
 
 const LOCAL_ASSETS = [
   './',
@@ -68,7 +68,6 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
-  // Navegación: red primero
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)
@@ -82,9 +81,6 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Recursos locales (JS, CSS): "stale-while-revalidate"
-  // Sirve la caché al instante, pero descarga la versión nueva en paralelo
-  // y la guarda para la próxima carga.
   const url = new URL(req.url);
   const esLocal = url.origin === location.origin;
 
@@ -107,7 +103,6 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Recursos externos (Tailwind, Tabler): caché primero
   e.respondWith(
     caches.match(req).then(cached => {
       if (cached) return cached;
