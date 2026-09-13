@@ -1,3 +1,8 @@
+// ============================================================
+// CajaFácil Cuba - Caja y turnos con validación
+// Desarrollado por Disney Gutiérrez Guevara
+// ============================================================
+
 function ventasTurno() {
   if (!State.turno) return [];
   return State.ventas.filter(v => v.turno_id === State.turno.id);
@@ -47,12 +52,14 @@ function renderCaja() {
 }
 
 async function abrirTurno() {
-  const inicial = parseFloat(document.getElementById('monto-inicial').value) || 0;
+  const v = Validar.numero(document.getElementById('monto-inicial').value || 0, 0, 999999999);
+  if (!v.ok) { toast('Monto inicial: ' + v.msg); return; }
+
   const t = {
     id: uid(),
     inicio: new Date().toISOString(),
     fin: null,
-    inicial,
+    inicial: v.valor,
     retiros: [],
     estado: 'abierto'
   };
@@ -62,10 +69,18 @@ async function abrirTurno() {
 }
 
 async function retiro() {
-  const monto = parseFloat(document.getElementById('monto-retiro').value) || 0;
-  const motivo = document.getElementById('motivo-retiro').value.trim();
-  if (monto <= 0) { toast('Monto inválido'); return; }
-  State.turno.retiros.push({ id: uid(), monto, motivo, fecha: new Date().toISOString() });
+  const vMonto = Validar.numero(document.getElementById('monto-retiro').value, 0.01, 999999999);
+  if (!vMonto.ok) { toast('Monto: ' + vMonto.msg); return; }
+
+  const vMotivo = Validar.texto(document.getElementById('motivo-retiro').value || '', 0, 100);
+  if (!vMotivo.ok) { toast('Motivo: ' + vMotivo.msg); return; }
+
+  State.turno.retiros.push({
+    id: uid(),
+    monto: vMonto.valor,
+    motivo: vMotivo.valor,
+    fecha: new Date().toISOString()
+  });
   await guardarTurno(State.turno);
   document.getElementById('monto-retiro').value = '';
   document.getElementById('motivo-retiro').value = '';
