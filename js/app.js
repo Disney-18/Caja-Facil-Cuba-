@@ -1,5 +1,6 @@
 // ============================================================
 // CajaFácil Cuba - Núcleo compartido (versión multi-negocio)
+// Bloque 3: instalación PWA, validación global, manejo de errores
 // Desarrollado por Disney Gutiérrez Guevara
 // ============================================================
 
@@ -21,6 +22,52 @@ const State = {
 };
 
 let _estadoCargado = false;
+let _deferredPrompt = null;
+
+// ------------------------------------------------------------
+// Manejo global de errores
+// ------------------------------------------------------------
+
+window.addEventListener('error', e => {
+  console.error('[Error global]', e.error || e.message);
+  try { toast('Ocurrió un error. Vuelve a intentarlo.'); } catch {}
+});
+
+window.addEventListener('unhandledrejection', e => {
+  console.error('[Promesa rechazada]', e.reason);
+  try { toast('Ocurrió un error. Vuelve a intentarlo.'); } catch {}
+});
+
+// ------------------------------------------------------------
+// Validación
+// ------------------------------------------------------------
+
+const Validar = {
+  texto(v, min = 1, max = 80) {
+    const s = String(v || '').trim();
+    if (s.length < min) return { ok: false, msg: `Mínimo ${min} caracteres` };
+    if (s.length > max) return { ok: false, msg: `Máximo ${max} caracteres` };
+    return { ok: true, valor: s };
+  },
+  numero(v, min = 0, max = 999999999) {
+    const n = Number(v);
+    if (isNaN(n)) return { ok: false, msg: 'Debe ser un número' };
+    if (n < min) return { ok: false, msg: `Mínimo ${min}` };
+    if (n > max) return { ok: false, msg: `Máximo ${max}` };
+    return { ok: true, valor: n };
+  },
+  entero(v, min = 0, max = 999999999) {
+    const n = parseInt(v, 10);
+    if (isNaN(n)) return { ok: false, msg: 'Debe ser un número entero' };
+    if (n < min) return { ok: false, msg: `Mínimo ${min}` };
+    if (n > max) return { ok: false, msg: `Máximo ${max}` };
+    return { ok: true, valor: n };
+  }
+};
+
+// ------------------------------------------------------------
+// Estado
+// ------------------------------------------------------------
 
 async function cargarEstado() {
   if (_estadoCargado) return;
@@ -76,6 +123,10 @@ async function cambiarNegocio(negocioId) {
   toast('Negocio: ' + n.nombre);
   window.dispatchEvent(new CustomEvent('negocio-cambiado'));
 }
+
+// ------------------------------------------------------------
+// Escrituras
+// ------------------------------------------------------------
 
 async function guardarProducto(p) {
   p.negocio_id = State.negocioActivo?.id || null;
@@ -156,6 +207,10 @@ async function eliminarNegocio(id) {
   State.negocios = State.negocios.filter(n => n.id !== id);
 }
 
+// ------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------
+
 const fmt = n => (Number(n) || 0).toLocaleString('es-CU');
 const money = (n, cur = 'CUP') => `${fmt(n)} ${cur}`;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -208,6 +263,37 @@ function pintarNegocioActivo() {
 }
 
 // ------------------------------------------------------------
+// Instalación PWA
+// ------------------------------------------------------------
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredPrompt = e;
+  const card = document.getElementById('card-instalar');
+  if (card) card.style.display = 'block';
+});
+
+window.addEventListener('appinstalled', () => {
+  _deferredPrompt = null;
+  const card = document.getElementById('card-instalar');
+  if (card) card.style.display = 'none';
+  toast('App instalada');
+});
+
+async function instalarPWA() {
+  if (!_deferredPrompt) {
+    toast('La instalación no está disponible');
+    return;
+  }
+  _deferredPrompt.prompt();
+  const { outcome } = await _deferredPrompt.userChoice;
+  if (outcome === 'accepted') toast('Instalando...');
+  _deferredPrompt = null;
+  const card = document.getElementById('card-instalar');
+  if (card) card.style.display = 'none';
+}
+
+// ------------------------------------------------------------
 // Service Worker con auto-actualización
 // ------------------------------------------------------------
 
@@ -236,10 +322,13 @@ if ('serviceWorker' in navigator) {
       });
     });
 
-    // Buscar actualizaciones cada 30 minutos mientras la app esté abierta
     setInterval(() => reg.update().catch(() => {}), 30 * 60 * 1000);
   });
 }
+
+// ------------------------------------------------------------
+// Arranque
+// ------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', async () => {
   await cargarEstado();
@@ -249,6 +338,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const btn = document.getElementById('btn-theme');
   if (btn) btn.addEventListener('click', toggleTheme);
+
+  const btnInstalar = document.getElementById('btn-instalar');
+  if (btnInstalar) btnInstalar.addEventListener('click', instalarPWA);
 
   window.dispatchEvent(new CustomEvent('estado-listo'));
 });
