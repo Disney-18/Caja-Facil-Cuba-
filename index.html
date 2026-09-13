@@ -23,6 +23,17 @@
 
 <main class="container">
 
+  <div class="card" id="card-alertas" style="display:none;border-left:4px solid var(--warning)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <i class="ti ti-alert-triangle" style="font-size:24px;color:var(--warning)"></i>
+      <div style="flex:1">
+        <div style="font-weight:600" id="alertas-titulo">Productos con stock bajo</div>
+        <div style="font-size:12px;color:var(--muted)" id="alertas-detalle"></div>
+      </div>
+      <button class="btn" onclick="location.href='inventario.html'">Ver</button>
+    </div>
+  </div>
+
   <div class="card">
     <label>Buscar producto</label>
     <input class="input" id="buscar" placeholder="Nombre o código..." autocomplete="off">
