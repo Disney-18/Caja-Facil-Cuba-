@@ -1,3 +1,8 @@
+// ============================================================
+// CajaFácil Cuba - Contador de efectivo con validación
+// Desarrollado por Disney Gutiérrez Guevara
+// ============================================================
+
 const DENOMS = {
   CUP: [5000, 2000, 1000, 500, 200, 100, 50, 20, 10, 5],
   USD: [100, 50, 20, 10, 5, 1]
@@ -30,7 +35,8 @@ function renderTabla() {
 }
 
 function setCant(d, v) {
-  cantidades[d] = Math.max(0, parseInt(v) || 0);
+  const v2 = Validar.entero(v, 0, 999999);
+  cantidades[d] = v2.ok ? v2.valor : 0;
   calcular();
 }
 
@@ -52,7 +58,8 @@ function calcular() {
   }
   document.getElementById('total-contado').textContent = money(total, moneda);
 
-  const esperado = parseFloat(document.getElementById('esperado').value) || 0;
+  const vEsperado = Validar.numero(document.getElementById('esperado').value || 0, 0, 999999999);
+  const esperado = vEsperado.ok ? vEsperado.valor : 0;
   const box = document.getElementById('diff-box');
   const val = document.getElementById('diff-valor');
   if (esperado > 0) {
