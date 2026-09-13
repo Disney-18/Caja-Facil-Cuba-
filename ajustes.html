@@ -22,15 +22,23 @@
 
 <main class="container">
 
-  <div class="card">
-    <button class="btn btn-block" onclick="location.href='negocios.html'">
-      <i class="ti ti-building-store"></i> Gestionar negocios
+  <div class="card" id="card-instalar" style="display:none">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <i class="ti ti-download" style="font-size:28px;color:var(--primary)"></i>
+      <div>
+        <div style="font-weight:600">Instalar la aplicación</div>
+        <div style="font-size:12px;color:var(--muted)">Accede más rápido desde tu pantalla de inicio</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" id="btn-instalar">
+      <i class="ti ti-device-mobile"></i> Instalar en mi teléfono
     </button>
   </div>
 
   <div class="card">
-    <label>Nombre del negocio activo</label>
-    <input class="input" id="a-negocio">
+    <button class="btn btn-block" onclick="location.href='negocios.html'">
+      <i class="ti ti-building-store"></i> Gestionar negocios
+    </button>
   </div>
 
   <div class="card">
