@@ -1,13 +1,26 @@
 // ============================================================
 // CajaFácil Cuba - Núcleo compartido (versión multi-negocio)
-// Bloque 3: instalación PWA, validación global, manejo de errores
+// Bloque 4: categorías, movimientos de inventario, unidades
 // Desarrollado por Disney Gutiérrez Guevara
 // ============================================================
+
+const UNIDADES = [
+  { id: 'unidad', nombre: 'Unidad' },
+  { id: 'libra', nombre: 'Libra' },
+  { id: 'kg', nombre: 'Kilogramo' },
+  { id: 'litro', nombre: 'Litro' },
+  { id: 'metro', nombre: 'Metro' },
+  { id: 'paquete', nombre: 'Paquete' },
+  { id: 'caja', nombre: 'Caja' },
+  { id: 'docena', nombre: 'Docena' }
+];
 
 const State = {
   negocioActivo: null,
   negocios: [],
+  categorias: [],
   productos: [],
+  movimientosInv: [],
   ventas: [],
   turnos: [],
   turno: null,
@@ -24,10 +37,6 @@ const State = {
 let _estadoCargado = false;
 let _deferredPrompt = null;
 
-// ------------------------------------------------------------
-// Manejo global de errores
-// ------------------------------------------------------------
-
 window.addEventListener('error', e => {
   console.error('[Error global]', e.error || e.message);
   try { toast('Ocurrió un error. Vuelve a intentarlo.'); } catch {}
@@ -37,10 +46,6 @@ window.addEventListener('unhandledrejection', e => {
   console.error('[Promesa rechazada]', e.reason);
   try { toast('Ocurrió un error. Vuelve a intentarlo.'); } catch {}
 });
-
-// ------------------------------------------------------------
-// Validación
-// ------------------------------------------------------------
 
 const Validar = {
   texto(v, min = 1, max = 80) {
@@ -64,10 +69,6 @@ const Validar = {
     return { ok: true, valor: n };
   }
 };
-
-// ------------------------------------------------------------
-// Estado
-// ------------------------------------------------------------
 
 async function cargarEstado() {
   if (_estadoCargado) return;
@@ -96,15 +97,19 @@ async function cargarEstado() {
 }
 
 async function cargarDatosNegocio(negocioId) {
-  const [productos, ventas, turnos, conteos, movimientos] = await Promise.all([
+  const [categorias, productos, movimientosInv, ventas, turnos, conteos, movimientos] = await Promise.all([
+    IDB.getByIndex(IDB.STORES.CATEGORIAS, 'negocio_id', negocioId),
     IDB.getByIndex(IDB.STORES.PRODUCTOS, 'negocio_id', negocioId),
+    IDB.getByIndex(IDB.STORES.MOVIMIENTOS_INV, 'negocio_id', negocioId),
     IDB.getByIndex(IDB.STORES.VENTAS, 'negocio_id', negocioId),
     IDB.getByIndex(IDB.STORES.TURNOS, 'negocio_id', negocioId),
     IDB.getByIndex(IDB.STORES.CONTEOS, 'negocio_id', negocioId),
     IDB.getByIndex(IDB.STORES.MOVIMIENTOS, 'negocio_id', negocioId)
   ]);
 
+  State.categorias = categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
   State.productos = productos;
+  State.movimientosInv = movimientosInv.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
   State.ventas = ventas.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
   State.turnos = turnos;
   State.turno = turnos.find(t => t.estado === 'abierto') || null;
@@ -125,7 +130,7 @@ async function cambiarNegocio(negocioId) {
 }
 
 // ------------------------------------------------------------
-// Escrituras
+// Productos
 // ------------------------------------------------------------
 
 async function guardarProducto(p) {
@@ -138,7 +143,65 @@ async function guardarProducto(p) {
 async function eliminarProducto(id) {
   await IDB.del(IDB.STORES.PRODUCTOS, id);
   State.productos = State.productos.filter(x => x.id !== id);
+
+  const movs = State.movimientosInv.filter(m => m.producto_id === id);
+  for (const m of movs) await IDB.del(IDB.STORES.MOVIMIENTOS_INV, m.id);
+  State.movimientosInv = State.movimientosInv.filter(m => m.producto_id !== id);
 }
+
+// ------------------------------------------------------------
+// Categorías
+// ------------------------------------------------------------
+
+async function guardarCategoria(c) {
+  c.negocio_id = State.negocioActivo?.id || null;
+  await IDB.put(IDB.STORES.CATEGORIAS, c);
+  const i = State.categorias.findIndex(x => x.id === c.id);
+  if (i >= 0) State.categorias[i] = c; else State.categorias.push(c);
+  State.categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
+async function eliminarCategoria(id) {
+  await IDB.del(IDB.STORES.CATEGORIAS, id);
+  State.categorias = State.categorias.filter(x => x.id !== id);
+  for (const p of State.productos.filter(p => p.categoria_id === id)) {
+    p.categoria_id = null;
+    await IDB.put(IDB.STORES.PRODUCTOS, p);
+  }
+}
+
+function nombreCategoria(id) {
+  if (!id) return 'Sin categoría';
+  const c = State.categorias.find(x => x.id === id);
+  return c ? c.nombre : 'Sin categoría';
+}
+
+// ------------------------------------------------------------
+// Movimientos de inventario
+// ------------------------------------------------------------
+
+async function registrarMovimientoInv(m) {
+  m.negocio_id = State.negocioActivo?.id || null;
+  await IDB.put(IDB.STORES.MOVIMIENTOS_INV, m);
+  State.movimientosInv.unshift(m);
+
+  const p = State.productos.find(x => x.id === m.producto_id);
+  if (p) {
+    if (m.tipo === 'entrada') {
+      p.stock = (p.stock || 0) + m.cantidad;
+    } else if (m.tipo === 'salida') {
+      p.stock = (p.stock || 0) - m.cantidad;
+    } else if (m.tipo === 'ajuste') {
+      p.stock = m.cantidad;
+    }
+    if (m.costo_unitario) p.costo = m.costo_unitario;
+    await IDB.put(IDB.STORES.PRODUCTOS, p);
+  }
+}
+
+// ------------------------------------------------------------
+// Ventas
+// ------------------------------------------------------------
 
 async function guardarVenta(v) {
   v.negocio_id = State.negocioActivo?.id || null;
@@ -148,11 +211,28 @@ async function guardarVenta(v) {
   for (const item of v.items) {
     const p = State.productos.find(x => x.id === item.id);
     if (p) {
-      p.stock = (p.stock || 0) - item.cant;
+      const stockAntes = p.stock || 0;
+      p.stock = stockAntes - item.cant;
       await IDB.put(IDB.STORES.PRODUCTOS, p);
+
+      await IDB.put(IDB.STORES.MOVIMIENTOS_INV, {
+        id: uid(),
+        negocio_id: v.negocio_id,
+        producto_id: p.id,
+        tipo: 'salida',
+        cantidad: item.cant,
+        costo_unitario: p.costo || 0,
+        motivo: 'Venta',
+        fecha: v.fecha,
+        venta_id: v.id
+      });
     }
   }
 }
+
+// ------------------------------------------------------------
+// Turnos, conteos, ajustes, movimientos
+// ------------------------------------------------------------
 
 async function guardarTurno(t) {
   t.negocio_id = State.negocioActivo?.id || null;
@@ -191,13 +271,17 @@ async function guardarNegocio(n) {
 }
 
 async function eliminarNegocio(id) {
+  const categorias = await IDB.getByIndex(IDB.STORES.CATEGORIAS, 'negocio_id', id);
   const productos = await IDB.getByIndex(IDB.STORES.PRODUCTOS, 'negocio_id', id);
+  const movInv = await IDB.getByIndex(IDB.STORES.MOVIMIENTOS_INV, 'negocio_id', id);
   const ventas = await IDB.getByIndex(IDB.STORES.VENTAS, 'negocio_id', id);
   const turnos = await IDB.getByIndex(IDB.STORES.TURNOS, 'negocio_id', id);
   const conteos = await IDB.getByIndex(IDB.STORES.CONTEOS, 'negocio_id', id);
   const movimientos = await IDB.getByIndex(IDB.STORES.MOVIMIENTOS, 'negocio_id', id);
 
+  for (const x of categorias) await IDB.del(IDB.STORES.CATEGORIAS, x.id);
   for (const x of productos) await IDB.del(IDB.STORES.PRODUCTOS, x.id);
+  for (const x of movInv) await IDB.del(IDB.STORES.MOVIMIENTOS_INV, x.id);
   for (const x of ventas) await IDB.del(IDB.STORES.VENTAS, x.id);
   for (const x of turnos) await IDB.del(IDB.STORES.TURNOS, x.id);
   for (const x of conteos) await IDB.del(IDB.STORES.CONTEOS, x.id);
@@ -214,6 +298,23 @@ async function eliminarNegocio(id) {
 const fmt = n => (Number(n) || 0).toLocaleString('es-CU');
 const money = (n, cur = 'CUP') => `${fmt(n)} ${cur}`;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function nombreUnidad(id) {
+  const u = UNIDADES.find(x => x.id === id);
+  return u ? u.nombre : 'Unidad';
+}
+
+function margenGanancia(p) {
+  if (!p.costo || p.costo <= 0) return null;
+  return ((p.precio - p.costo) / p.costo) * 100;
+}
+
+function productosStockBajo() {
+  return State.productos.filter(p => {
+    const min = p.stock_minimo || 0;
+    return min > 0 && (p.stock || 0) <= min;
+  });
+}
 
 function applyTheme() {
   document.documentElement.classList.toggle('dark', State.ajustes.tema === 'dark');
@@ -294,7 +395,7 @@ async function instalarPWA() {
 }
 
 // ------------------------------------------------------------
-// Service Worker con auto-actualización
+// Service Worker
 // ------------------------------------------------------------
 
 if ('serviceWorker' in navigator) {
@@ -325,10 +426,6 @@ if ('serviceWorker' in navigator) {
     setInterval(() => reg.update().catch(() => {}), 30 * 60 * 1000);
   });
 }
-
-// ------------------------------------------------------------
-// Arranque
-// ------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', async () => {
   await cargarEstado();
