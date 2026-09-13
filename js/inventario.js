@@ -1,3 +1,8 @@
+// ============================================================
+// CajaFácil Cuba - Inventario con validación
+// Desarrollado por Disney Gutiérrez Guevara
+// ============================================================
+
 let editId = null;
 
 function renderInventario(filtro = '') {
@@ -55,11 +60,22 @@ function editar(id) {
 }
 
 async function guardar() {
-  const nombre = document.getElementById('p-nombre').value.trim();
-  const codigo = document.getElementById('p-codigo').value.trim();
-  const precio = parseFloat(document.getElementById('p-precio').value) || 0;
-  const stock = parseInt(document.getElementById('p-stock').value) || 0;
-  if (!nombre) { toast('Nombre requerido'); return; }
+  const vNombre = Validar.texto(document.getElementById('p-nombre').value, 1, 80);
+  if (!vNombre.ok) { toast('Nombre: ' + vNombre.msg); return; }
+
+  const vCodigo = Validar.texto(document.getElementById('p-codigo').value || '', 0, 40);
+  if (!vCodigo.ok) { toast('Código: ' + vCodigo.msg); return; }
+
+  const vPrecio = Validar.numero(document.getElementById('p-precio').value, 0, 999999999);
+  if (!vPrecio.ok) { toast('Precio: ' + vPrecio.msg); return; }
+
+  const vStock = Validar.entero(document.getElementById('p-stock').value, 0, 999999999);
+  if (!vStock.ok) { toast('Stock: ' + vStock.msg); return; }
+
+  const nombre = vNombre.valor;
+  const codigo = vCodigo.valor;
+  const precio = vPrecio.valor;
+  const stock = vStock.valor;
 
   if (editId) {
     const p = State.productos.find(x => x.id === editId);
