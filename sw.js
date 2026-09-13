@@ -1,4 +1,4 @@
-const CACHE = 'caja-facil-cuba-v3';
+const CACHE = 'caja-facil-cuba-v4';
 
 const LOCAL_ASSETS = [
   './',
@@ -68,7 +68,6 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
-  // Navegación (HTML): red primero, caché de respaldo
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)
@@ -82,7 +81,6 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Recursos: caché primero, red de respaldo
   e.respondWith(
     caches.match(req).then(cached => {
       if (cached) return cached;
