@@ -1,16 +1,18 @@
 // ============================================================
 // CajaFácil Cuba - Capa de acceso a IndexedDB
-// Reemplaza a localStorage con soporte para múltiples negocios
+// Bloque 4: categorías y movimientos de inventario
 // Desarrollado por Disney Gutiérrez Guevara
 // ============================================================
 
 const DB_NAME = 'caja-facil-cuba';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORES = {
   META: 'meta',
   NEGOCIOS: 'negocios',
+  CATEGORIAS: 'categorias',
   PRODUCTOS: 'productos',
+  MOVIMIENTOS_INV: 'movimientos_inv',
   VENTAS: 'ventas',
   TURNOS: 'turnos',
   CONTEOS: 'conteos',
@@ -37,10 +39,30 @@ function abrirDB() {
         s.createIndex('nombre', 'nombre', { unique: false });
       }
 
+      if (!db.objectStoreNames.contains(STORES.CATEGORIAS)) {
+        const s = db.createObjectStore(STORES.CATEGORIAS, { keyPath: 'id' });
+        s.createIndex('negocio_id', 'negocio_id', { unique: false });
+        s.createIndex('nombre', 'nombre', { unique: false });
+      }
+
       if (!db.objectStoreNames.contains(STORES.PRODUCTOS)) {
         const s = db.createObjectStore(STORES.PRODUCTOS, { keyPath: 'id' });
         s.createIndex('negocio_id', 'negocio_id', { unique: false });
+        s.createIndex('categoria_id', 'categoria_id', { unique: false });
         s.createIndex('codigo', 'codigo', { unique: false });
+      } else {
+        const s = e.target.transaction.objectStore(STORES.PRODUCTOS);
+        if (!s.indexNames.contains('categoria_id')) {
+          s.createIndex('categoria_id', 'categoria_id', { unique: false });
+        }
+      }
+
+      if (!db.objectStoreNames.contains(STORES.MOVIMIENTOS_INV)) {
+        const s = db.createObjectStore(STORES.MOVIMIENTOS_INV, { keyPath: 'id' });
+        s.createIndex('negocio_id', 'negocio_id', { unique: false });
+        s.createIndex('producto_id', 'producto_id', { unique: false });
+        s.createIndex('fecha', 'fecha', { unique: false });
+        s.createIndex('tipo', 'tipo', { unique: false });
       }
 
       if (!db.objectStoreNames.contains(STORES.VENTAS)) {
