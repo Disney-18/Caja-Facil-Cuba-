@@ -1,5 +1,5 @@
 // ============================================================
-// CajaFácil Cuba - Gestión de negocios
+// CajaFácil Cuba - Gestión de negocios (con validación)
 // Desarrollado por Disney Gutiérrez Guevara
 // ============================================================
 
@@ -35,6 +35,8 @@ const COLORES_DISPONIBLES = [
 ];
 
 let editId = null;
+let iconoElegido = 'ti-building-store';
+let colorElegido = '#2563eb';
 
 function renderNegocios() {
   const cont = document.getElementById('lista-negocios');
@@ -86,9 +88,6 @@ function renderSelectorColores(seleccionado) {
   `).join('');
 }
 
-let iconoElegido = 'ti-building-store';
-let colorElegido = '#2563eb';
-
 function seleccionarIcono(ic) {
   iconoElegido = ic;
   document.querySelectorAll('#iconos .icon-btn').forEach(b => {
@@ -134,9 +133,14 @@ function editarNegocio(id) {
 }
 
 async function guardarNegocioHandler() {
-  const nombre = document.getElementById('n-nombre').value.trim();
-  const tipo = document.getElementById('n-tipo').value.trim();
-  if (!nombre) { toast('Nombre requerido'); return; }
+  const vNombre = Validar.texto(document.getElementById('n-nombre').value, 1, 80);
+  if (!vNombre.ok) { toast('Nombre: ' + vNombre.msg); return; }
+
+  const vTipo = Validar.texto(document.getElementById('n-tipo').value || '', 0, 40);
+  if (!vTipo.ok) { toast('Tipo: ' + vTipo.msg); return; }
+
+  const nombre = vNombre.valor;
+  const tipo = vTipo.valor;
 
   if (editId) {
     const n = State.negocios.find(x => x.id === editId);
