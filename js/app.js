@@ -1,6 +1,6 @@
 // ============================================================
 // CajaFácil Cuba - Núcleo compartido (versión multi-negocio)
-// Bloque 4: categorías, movimientos de inventario, unidades
+// Bloque 5: vendedores, clientes, ventas en espera
 // Desarrollado por Disney Gutiérrez Guevara
 // ============================================================
 
@@ -15,13 +15,23 @@ const UNIDADES = [
   { id: 'docena', nombre: 'Docena' }
 ];
 
+const FORMAS_PAGO = [
+  { id: 'efectivo', nombre: 'Efectivo CUP' },
+  { id: 'transferencia', nombre: 'Transferencia CUP' },
+  { id: 'usd', nombre: 'Efectivo USD' },
+  { id: 'qr', nombre: 'Pago por QR' }
+];
+
 const State = {
   negocioActivo: null,
   negocios: [],
   categorias: [],
   productos: [],
   movimientosInv: [],
+  vendedores: [],
+  clientes: [],
   ventas: [],
+  ventasEnEspera: [],
   turnos: [],
   turno: null,
   conteos: [],
@@ -97,10 +107,15 @@ async function cargarEstado() {
 }
 
 async function cargarDatosNegocio(negocioId) {
-  const [categorias, productos, movimientosInv, ventas, turnos, conteos, movimientos] = await Promise.all([
+  const [
+    categorias, productos, movimientosInv, vendedores, clientes,
+    ventas, turnos, conteos, movimientos
+  ] = await Promise.all([
     IDB.getByIndex(IDB.STORES.CATEGORIAS, 'negocio_id', negocioId),
     IDB.getByIndex(IDB.STORES.PRODUCTOS, 'negocio_id', negocioId),
     IDB.getByIndex(IDB.STORES.MOVIMIENTOS_INV, 'negocio_id', negocioId),
+    IDB.getByIndex(IDB.STORES.VENDEDORES, 'negocio_id', negocioId),
+    IDB.getByIndex(IDB.STORES.CLIENTES, 'negocio_id', negocioId),
     IDB.getByIndex(IDB.STORES.VENTAS, 'negocio_id', negocioId),
     IDB.getByIndex(IDB.STORES.TURNOS, 'negocio_id', negocioId),
     IDB.getByIndex(IDB.STORES.CONTEOS, 'negocio_id', negocioId),
@@ -110,11 +125,16 @@ async function cargarDatosNegocio(negocioId) {
   State.categorias = categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
   State.productos = productos;
   State.movimientosInv = movimientosInv.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  State.vendedores = vendedores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  State.clientes = clientes.sort((a, b) => a.nombre.localeCompare(b.nombre));
   State.ventas = ventas.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
   State.turnos = turnos;
   State.turno = turnos.find(t => t.estado === 'abierto') || null;
   State.conteos = conteos.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
   State.movimientos = movimientos.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+
+  State.ventasEnEspera = ventas.filter(v => v.estado === 'espera');
+  State.ventas = State.ventas.filter(v => v.estado !== 'espera');
 }
 
 async function cambiarNegocio(negocioId) {
@@ -200,12 +220,66 @@ async function registrarMovimientoInv(m) {
 }
 
 // ------------------------------------------------------------
+// Vendedores
+// ------------------------------------------------------------
+
+async function guardarVendedor(v) {
+  v.negocio_id = State.negocioActivo?.id || null;
+  await IDB.put(IDB.STORES.VENDEDORES, v);
+  const i = State.vendedores.findIndex(x => x.id === v.id);
+  if (i >= 0) State.vendedores[i] = v; else State.vendedores.push(v);
+  State.vendedores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
+async function eliminarVendedor(id) {
+  await IDB.del(IDB.STORES.VENDEDORES, id);
+  State.vendedores = State.vendedores.filter(x => x.id !== id);
+}
+
+function nombreVendedor(id) {
+  if (!id) return 'Sin vendedor';
+  const v = State.vendedores.find(x => x.id === id);
+  return v ? v.nombre : 'Sin vendedor';
+}
+
+// ------------------------------------------------------------
+// Clientes
+// ------------------------------------------------------------
+
+async function guardarCliente(c) {
+  c.negocio_id = State.negocioActivo?.id || null;
+  await IDB.put(IDB.STORES.CLIENTES, c);
+  const i = State.clientes.findIndex(x => x.id === c.id);
+  if (i >= 0) State.clientes[i] = c; else State.clientes.push(c);
+  State.clientes.sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
+async function eliminarCliente(id) {
+  await IDB.del(IDB.STORES.CLIENTES, id);
+  State.clientes = State.clientes.filter(x => x.id !== id);
+}
+
+function nombreCliente(id) {
+  if (!id) return 'Cliente ocasional';
+  const c = State.clientes.find(x => x.id === id);
+  return c ? c.nombre : 'Cliente ocasional';
+}
+
+// ------------------------------------------------------------
 // Ventas
 // ------------------------------------------------------------
 
 async function guardarVenta(v) {
   v.negocio_id = State.negocioActivo?.id || null;
+  if (!v.estado) v.estado = 'cerrada';
   await IDB.put(IDB.STORES.VENTAS, v);
+
+  if (v.estado === 'espera') {
+    const i = State.ventasEnEspera.findIndex(x => x.id === v.id);
+    if (i >= 0) State.ventasEnEspera[i] = v; else State.ventasEnEspera.unshift(v);
+    return;
+  }
+
   State.ventas.unshift(v);
 
   for (const item of v.items) {
@@ -228,6 +302,21 @@ async function guardarVenta(v) {
       });
     }
   }
+}
+
+async function finalizarVentaEnEspera(id, extras) {
+  const venta = State.ventasEnEspera.find(v => v.id === id);
+  if (!venta) return;
+  Object.assign(venta, extras || {});
+  venta.estado = 'cerrada';
+  venta.fecha = new Date().toISOString();
+  await guardarVenta(venta);
+  State.ventasEnEspera = State.ventasEnEspera.filter(v => v.id !== id);
+}
+
+async function eliminarVentaEnEspera(id) {
+  await IDB.del(IDB.STORES.VENTAS, id);
+  State.ventasEnEspera = State.ventasEnEspera.filter(v => v.id !== id);
 }
 
 // ------------------------------------------------------------
@@ -274,6 +363,8 @@ async function eliminarNegocio(id) {
   const categorias = await IDB.getByIndex(IDB.STORES.CATEGORIAS, 'negocio_id', id);
   const productos = await IDB.getByIndex(IDB.STORES.PRODUCTOS, 'negocio_id', id);
   const movInv = await IDB.getByIndex(IDB.STORES.MOVIMIENTOS_INV, 'negocio_id', id);
+  const vendedores = await IDB.getByIndex(IDB.STORES.VENDEDORES, 'negocio_id', id);
+  const clientes = await IDB.getByIndex(IDB.STORES.CLIENTES, 'negocio_id', id);
   const ventas = await IDB.getByIndex(IDB.STORES.VENTAS, 'negocio_id', id);
   const turnos = await IDB.getByIndex(IDB.STORES.TURNOS, 'negocio_id', id);
   const conteos = await IDB.getByIndex(IDB.STORES.CONTEOS, 'negocio_id', id);
@@ -282,6 +373,8 @@ async function eliminarNegocio(id) {
   for (const x of categorias) await IDB.del(IDB.STORES.CATEGORIAS, x.id);
   for (const x of productos) await IDB.del(IDB.STORES.PRODUCTOS, x.id);
   for (const x of movInv) await IDB.del(IDB.STORES.MOVIMIENTOS_INV, x.id);
+  for (const x of vendedores) await IDB.del(IDB.STORES.VENDEDORES, x.id);
+  for (const x of clientes) await IDB.del(IDB.STORES.CLIENTES, x.id);
   for (const x of ventas) await IDB.del(IDB.STORES.VENTAS, x.id);
   for (const x of turnos) await IDB.del(IDB.STORES.TURNOS, x.id);
   for (const x of conteos) await IDB.del(IDB.STORES.CONTEOS, x.id);
@@ -302,6 +395,11 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 function nombreUnidad(id) {
   const u = UNIDADES.find(x => x.id === id);
   return u ? u.nombre : 'Unidad';
+}
+
+function nombreFormaPago(id) {
+  const f = FORMAS_PAGO.find(x => x.id === id);
+  return f ? f.nombre : id;
 }
 
 function margenGanancia(p) {
