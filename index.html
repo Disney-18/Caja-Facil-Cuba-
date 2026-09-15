@@ -34,6 +34,16 @@
     </div>
   </div>
 
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <button class="btn" style="flex:1;min-width:140px" id="btn-espera">
+      <i class="ti ti-clock-pause"></i> En espera
+      <span id="badge-espera" class="badge badge-warn" style="display:none">0</span>
+    </button>
+    <button class="btn" style="flex:1;min-width:140px" id="btn-clientes">
+      <i class="ti ti-users"></i> Clientes
+    </button>
+  </div>
+
   <div class="card">
     <label>Buscar producto</label>
     <input class="input" id="buscar" placeholder="Nombre o código..." autocomplete="off">
@@ -45,19 +55,208 @@
       <strong>Ticket</strong>
       <button class="btn" id="btn-vaciar"><i class="ti ti-trash"></i> Vaciar</button>
     </div>
+
     <table>
       <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead>
       <tbody id="ticket"></tbody>
     </table>
+
     <div style="margin-top:14px">
-      <div class="total-display" id="total">0 CUP</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted)">
+        <span>Subtotal</span>
+        <span id="subtotal">0 CUP</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:4px" id="fila-descuento-ticket">
+        <span>Descuento</span>
+        <span id="descuento-ticket">0 CUP</span>
+      </div>
+      <div class="total-display" id="total" style="margin-top:6px">0 CUP</div>
     </div>
-    <button class="btn btn-primary btn-block" style="margin-top:12px" id="btn-cobrar">
-      <i class="ti ti-cash"></i> Cobrar
-    </button>
+
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" style="flex:1" id="btn-descuento-ticket">
+        <i class="ti ti-discount-2"></i> Descuento
+      </button>
+      <button class="btn" style="flex:1" id="btn-notas">
+        <i class="ti ti-note"></i> Nota
+      </button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" style="flex:1" id="btn-cliente">
+        <i class="ti ti-user"></i> <span id="texto-cliente">Cliente ocasional</span>
+      </button>
+      <button class="btn" style="flex:1" id="btn-vendedor">
+        <i class="ti ti-user-check"></i> <span id="texto-vendedor">Sin vendedor</span>
+      </button>
+    </div>
+
+    <div id="nota-venta" style="display:none;margin-top:10px;font-size:13px;color:var(--muted);padding:8px;background:var(--bg);border-radius:8px"></div>
+
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" style="flex:1" id="btn-esperar">
+        <i class="ti ti-clock-pause"></i> Poner en espera
+      </button>
+      <button class="btn btn-primary" style="flex:2" id="btn-cobrar">
+        <i class="ti ti-cash"></i> Cobrar
+      </button>
+    </div>
   </div>
 
 </main>
+
+<!-- Modal: Cobro -->
+<div id="modal-cobro" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <strong>Cobro</strong>
+      <button class="icon-btn" onclick="cerrarModalCobro()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:12px;color:var(--muted)">Total a cobrar</div>
+      <div class="total-display" id="cobro-total" style="text-align:center">0 CUP</div>
+    </div>
+
+    <label>Forma de pago</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn" data-pago="efectivo" onclick="setFormaPago('efectivo')">Efectivo CUP</button>
+      <button class="btn" data-pago="transferencia" onclick="setFormaPago('transferencia')">Transferencia</button>
+      <button class="btn" data-pago="usd" onclick="setFormaPago('usd')">Efectivo USD</button>
+      <button class="btn" data-pago="qr" onclick="setFormaPago('qr')">QR</button>
+    </div>
+
+    <div style="margin-top:14px" id="zona-mixto">
+      <label>¿Cobro mixto?</label>
+      <button class="btn btn-block" id="btn-activar-mixto">
+        <i class="ti ti-plus"></i> Añadir segunda forma de pago
+      </button>
+      <div id="mixto-detalle" style="display:none;margin-top:10px"></div>
+    </div>
+
+    <div style="margin-top:14px">
+      <label>Recibido</label>
+      <input class="input" id="cobro-recibido" type="number" min="0" step="0.01" placeholder="0">
+      <div id="cobro-cambio" style="margin-top:8px;font-size:14px;text-align:right"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" style="flex:1" onclick="cerrarModalCobro()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="confirmarCobro()">
+        <i class="ti ti-check"></i> Confirmar cobro
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Descuento -->
+<div id="modal-descuento" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <strong>Descuento del ticket</strong>
+      <button class="icon-btn" onclick="cerrarModalDescuento()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <label>Tipo</label>
+    <select class="input" id="desc-tipo">
+      <option value="porciento">Por ciento (%)</option>
+      <option value="monto">Monto fijo (CUP)</option>
+    </select>
+
+    <label style="margin-top:12px">Valor</label>
+    <input class="input" id="desc-valor" type="number" min="0" step="0.01" value="0">
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" style="flex:1" onclick="quitarDescuento()">Quitar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="aplicarDescuento()">
+        <i class="ti ti-check"></i> Aplicar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nota -->
+<div id="modal-nota" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <strong>Nota de la venta</strong>
+      <button class="icon-btn" onclick="cerrarModalNota()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <label>Nota</label>
+    <textarea class="input" id="nota-texto" rows="4" maxlength="200" placeholder="Ej: pedido para las 5 pm"></textarea>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" style="flex:1" onclick="cerrarModalNota()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="guardarNota()">
+        <i class="ti ti-check"></i> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Cliente -->
+<div id="modal-cliente" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <strong>Cliente</strong>
+      <button class="icon-btn" onclick="cerrarModalCliente()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <input class="input" id="buscar-cliente" placeholder="Buscar cliente...">
+
+    <div style="margin-top:10px;max-height:220px;overflow-y:auto" id="lista-clientes"></div>
+
+    <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">
+      <label>Nuevo cliente</label>
+      <input class="input" id="nuevo-cliente-nombre" placeholder="Nombre" maxlength="60">
+      <input class="input" id="nuevo-cliente-telefono" placeholder="Teléfono (opcional)" maxlength="20" style="margin-top:8px">
+      <button class="btn btn-block btn-primary" style="margin-top:8px" onclick="crearClienteRapido()">
+        <i class="ti ti-plus"></i> Crear y seleccionar
+      </button>
+    </div>
+
+    <button class="btn btn-block" style="margin-top:12px" onclick="quitarCliente()">
+      Cliente ocasional
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Vendedor -->
+<div id="modal-vendedor" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <strong>Vendedor</strong>
+      <button class="icon-btn" onclick="cerrarModalVendedor()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div style="max-height:220px;overflow-y:auto" id="lista-vendedores"></div>
+
+    <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">
+      <label>Nuevo vendedor</label>
+      <input class="input" id="nuevo-vendedor-nombre" placeholder="Nombre" maxlength="60">
+      <button class="btn btn-block btn-primary" style="margin-top:8px" onclick="crearVendedorRapido()">
+        <i class="ti ti-plus"></i> Crear y seleccionar
+      </button>
+    </div>
+
+    <button class="btn btn-block" style="margin-top:12px" onclick="quitarVendedor()">
+      Sin vendedor
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Ventas en espera -->
+<div id="modal-espera" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <strong>Ventas en espera</strong>
+      <button class="icon-btn" onclick="cerrarModalEspera()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div id="lista-espera" style="max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
 
 <nav class="nav-bottom">
   <a href="index.html"><i class="ti ti-shopping-cart"></i>Vender</a>
