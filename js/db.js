@@ -1,11 +1,11 @@
 // ============================================================
 // CajaFácil Cuba - Capa de acceso a IndexedDB
-// Bloque 4: categorías y movimientos de inventario
+// Bloque 5: vendedores y clientes
 // Desarrollado por Disney Gutiérrez Guevara
 // ============================================================
 
 const DB_NAME = 'caja-facil-cuba';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const STORES = {
   META: 'meta',
@@ -13,6 +13,8 @@ const STORES = {
   CATEGORIAS: 'categorias',
   PRODUCTOS: 'productos',
   MOVIMIENTOS_INV: 'movimientos_inv',
+  VENDEDORES: 'vendedores',
+  CLIENTES: 'clientes',
   VENTAS: 'ventas',
   TURNOS: 'turnos',
   CONTEOS: 'conteos',
@@ -50,11 +52,6 @@ function abrirDB() {
         s.createIndex('negocio_id', 'negocio_id', { unique: false });
         s.createIndex('categoria_id', 'categoria_id', { unique: false });
         s.createIndex('codigo', 'codigo', { unique: false });
-      } else {
-        const s = e.target.transaction.objectStore(STORES.PRODUCTOS);
-        if (!s.indexNames.contains('categoria_id')) {
-          s.createIndex('categoria_id', 'categoria_id', { unique: false });
-        }
       }
 
       if (!db.objectStoreNames.contains(STORES.MOVIMIENTOS_INV)) {
@@ -65,11 +62,26 @@ function abrirDB() {
         s.createIndex('tipo', 'tipo', { unique: false });
       }
 
+      if (!db.objectStoreNames.contains(STORES.VENDEDORES)) {
+        const s = db.createObjectStore(STORES.VENDEDORES, { keyPath: 'id' });
+        s.createIndex('negocio_id', 'negocio_id', { unique: false });
+        s.createIndex('nombre', 'nombre', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORES.CLIENTES)) {
+        const s = db.createObjectStore(STORES.CLIENTES, { keyPath: 'id' });
+        s.createIndex('negocio_id', 'negocio_id', { unique: false });
+        s.createIndex('nombre', 'nombre', { unique: false });
+        s.createIndex('telefono', 'telefono', { unique: false });
+      }
+
       if (!db.objectStoreNames.contains(STORES.VENTAS)) {
         const s = db.createObjectStore(STORES.VENTAS, { keyPath: 'id' });
         s.createIndex('negocio_id', 'negocio_id', { unique: false });
         s.createIndex('fecha', 'fecha', { unique: false });
         s.createIndex('turno_id', 'turno_id', { unique: false });
+        s.createIndex('vendedor_id', 'vendedor_id', { unique: false });
+        s.createIndex('cliente_id', 'cliente_id', { unique: false });
       }
 
       if (!db.objectStoreNames.contains(STORES.TURNOS)) {
